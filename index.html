@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EulerCode — Mini Compilador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Fira+Code:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER: identidad del compilador con tipografía serif + badge animado -->
+  <header class="hdr">
+    <div class="hdr-tag">
+      <span class="hdr-tag-dot"></span>
+      Compiladores · Universidad Mariano Gálvez · Campus Jutiapa 2026
+    </div>
+    <h1 class="hdr-title">
+      <span class="word-1">EulerCode</span>
+      <span class="word-2"> —</span>
+      <!-- word-3 usa itálica serif + gradiente violeta-cyan -->
+      <span class="word-3">Mini Compilador</span>
+    </h1>
+    <p class="hdr-sub">// léxico &nbsp;·&nbsp; sintáctico &nbsp;·&nbsp; semántico &nbsp;·&nbsp; árbol de derivación &nbsp;·&nbsp; BNF</p>
+    <div class="lang-badge">
+      ⚡ Inspirado en Leonhard Euler &nbsp;·&nbsp; Español-Inglés &nbsp;·&nbsp; Case-sensitive &nbsp;·&nbsp; Asignación con &lt;-
+    </div>
+  </header>
+
+  <!-- REFERENCIA DE PALABRAS RESERVADAS: 20 chips con tooltip de equivalente -->
+  <div class="results-section" style="margin-top:0">
+    <div class="section-label label-symbols">
+      Palabras Reservadas de EulerCode
+      <span class="section-count">20 keywords</span>
+    </div>
+    <div class="kw-legend">
+      <span class="kw-tag">num<span>entero</span></span>
+      <span class="kw-tag">dec<span>decimal</span></span>
+      <span class="kw-tag">bool<span>booleano</span></span>
+      <span class="kw-tag">cierto<span>true</span></span>
+      <span class="kw-tag">falso<span>false</span></span>
+      <span class="kw-tag">definir<span>function</span></span>
+      <span class="kw-tag">return<span>retorno</span></span>
+      <span class="kw-tag">si<span>if</span></span>
+      <span class="kw-tag">else<span>else</span></span>
+      <span class="kw-tag">repetir<span>while</span></span>
+      <span class="kw-tag">contar<span>for</span></span>
+      <span class="kw-tag">romper<span>break</span></span>
+      <span class="kw-tag">skip<span>continue</span></span>
+      <span class="kw-tag">show<span>imprimir</span></span>
+      <span class="kw-tag">raiz<span>√ sqrt</span></span>
+      <span class="kw-tag">elevar<span>potencia</span></span>
+      <span class="kw-tag">modulo<span>% mod</span></span>
+      <span class="kw-tag">inicio<span>bloque {</span></span>
+      <span class="kw-tag">fin<span>bloque }</span></span>
+      <span class="kw-tag">nulo<span>null/void</span></span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- BARRA DE ACCIONES: muestras válidas (verde), con errores (rojo), analizar y limpiar -->
+  <div class="action-bar">
+    <span class="action-bar-title">Código fuente</span>
+    <!-- Muestras con código correcto -->
+    <button class="btn btn-sample" onclick="loadSample(1)">✓ Área círculo</button>
+    <button class="btn btn-sample" onclick="loadSample(2)">✓ Factorial</button>
+    <button class="btn btn-sample" onclick="loadSample(3)">✓ Raíz cuad.</button>
+    <button class="btn btn-sample" onclick="loadSample(4)">✓ Potencias</button>
+    <button class="btn btn-sample" onclick="loadSample(5)">✓ MCD Euler</button>
+    <!-- Muestras con errores léxicos/sintácticos/semánticos -->
+    <button class="btn-sample-err" onclick="loadErrorSample(1)">✗ Error léxico 1</button>
+    <button class="btn-sample-err" onclick="loadErrorSample(2)">✗ Error léxico 2</button>
+    <button class="btn-sample-err" onclick="loadErrorSample(3)">✗ Error sintáctico</button>
+    <button class="btn-sample-err" onclick="loadErrorSample(4)">✗ Error semántico 1</button>
+    <button class="btn-sample-err" onclick="loadErrorSample(5)">✗ Error semántico 2</button>
+    <!-- Controles principales -->
+    <button class="btn btn-run" onclick="analyze()">▶ Analizar</button>
+    <button class="btn btn-clear" onclick="clearAll()">✕ Limpiar</button>
+  </div>
+
+  <!-- EDITOR: textarea estilo IDE con barra decorativa tipo macOS -->
+  <div class="editor-wrap">
+    <div class="editor-topbar">
+      <!-- Puntos de semáforo estilo macOS -->
+      <div class="mac-dots">
+        <div class="mac-dot" style="background:#ff5f57;"></div>
+        <div class="mac-dot" style="background:#febc2e;"></div>
+        <div class="mac-dot" style="background:#28c840;"></div>
+      </div>
+      <span style="font-family:var(--f-code);font-size:.68rem;color:var(--tx-muted);margin-left:.5rem;">programa.euler</span>
+      <span class="editor-lang">EulerCode</span>
+    </div>
+    <!-- spellcheck false evita subrayado rojo de ortografía -->
+    <textarea id="codeInput" class="code-area" spellcheck="false"
+      placeholder="// Escribe tu programa en EulerCode aquí...
+// Usa las muestras de arriba o escribe desde cero.
+// Ctrl + Enter para analizar rápidamente.
+
+// Ejemplo rápido:
+num x <- 42;
+show(x);"></textarea>
+  </div>
+
+  <!-- TOKENS: grid de tarjetas generadas por renderTokens() en render.js -->
+  <div class="results-section">
+    <div class="section-label label-tokens">
+      Tokens Detectados
+      <span id="tokCount" class="section-count"></span>
+    </div>
+    <div id="tokensGrid" class="tokens-grid">
+      <div class="empty" style="grid-column:1/-1">
+        <span class="empty-icon">◎</span>
+        <span>Esperando código fuente...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ERRORES LÉXICOS: tabla generada por renderErrorTable() en render.js -->
+  <div class="results-section">
+    <div class="section-label label-errors">
+      Errores Léxicos
+      <span id="errCount" class="section-count"></span>
+    </div>
+    <div id="errWrap">
+      <div class="empty">
+        <span class="empty-icon">⚠</span>
+        <span>Los errores léxicos aparecerán aquí...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ERRORES SINTÁCTICOS Y SEMÁNTICOS: generados por renderSyntaxErrors() -->
+  <div class="results-section">
+    <div class="section-label">
+      <span style="display:block;width:2px;height:16px;border-radius:2px;background:var(--amber);flex-shrink:0;"></span>
+      Errores Sintácticos &amp; Semánticos
+      <span id="semCount" class="section-count"></span>
+    </div>
+    <div id="semWrap">
+      <div class="empty">
+        <span class="empty-icon">◈</span>
+        <span>El análisis semántico aparecerá aquí...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TABLA DE SÍMBOLOS: generada por renderSymbols() en render.js -->
+  <div class="results-section">
+    <div class="section-label label-symbols">
+      Tabla de Símbolos
+      <span id="symCount" class="section-count"></span>
+    </div>
+    <div id="symWrap">
+      <div class="empty">
+        <span class="empty-icon">⊡</span>
+        <span>La tabla se generará al analizar...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ESTADÍSTICAS: tarjetas métricas generadas por _renderStats() -->
+  <div class="results-section">
+    <div class="section-label label-stats">Estadísticas de Tokens</div>
+    <div id="statsWrap"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- BNF: contenido inyectado por app.js desde BNF_RULES de parser.js -->
+  <div class="results-section">
+    <div class="section-label label-symbols">
+      Gramática Formal — BNF de EulerCode
+    </div>
+    <pre id="bnfDisplay"></pre>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ÁRBOL DE DERIVACIÓN: SVG generado por renderParseTree() en parser.js -->
+  <div class="results-section">
+    <div class="section-label label-tokens">
+      Árbol de Derivación — Análisis Sintáctico
+      <span id="parseInfo" class="section-count"></span>
+    </div>
+    <div id="parseTreeWrap">
+      <div class="empty">
+        <span class="empty-icon">⊙</span>
+        <span>El árbol se generará al analizar...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIE DE PÁGINA -->
+  <div class="divider"></div>
+  <div style="text-align:center;font-family:var(--f-code);font-size:.6rem;color:var(--tx-muted);padding-bottom:1rem;letter-spacing:.1em;">
+    EulerCode &nbsp;·&nbsp; Compiladores 2026 &nbsp;·&nbsp; Universidad Mariano Gálvez de Guatemala &nbsp;·&nbsp; Campus Jutiapa
+  </div>
+
+</div><!-- /wrap -->
+
+<!--
+  ORDEN DE CARGA DE SCRIPTS (CRÍTICO — cada archivo depende del anterior):
+  1. constants.js  → TYPE, CAT, ERR_TYPES, KEYWORDS, REGEX_RULES
+  2. lexer.js      → clase Lexer (depende de constants)
+  3. parser.js     → Parser, SemanticAnalyzer, BNF_RULES, renderParseTree (depende de constants)
+  4. render.js     → funciones de renderizado UI (depende de TYPE, ERR_COLOR)
+  5. app.js        → SAMPLES, analyze(), eventos (depende de todo lo anterior)
+-->
+<script src="js/constants.js"></script>
+<script src="js/lexer.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

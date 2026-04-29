@@ -1,0 +1,535 @@
+/* ═══════════════════════════════════════════════════════════════
+   EulerCode — Design System
+   Estética: Dark Luxury / Editorial Matemático
+   Paleta: Negro profundo + Violeta + Dorado matemático + Cyan
+   Tipografía: Playfair Display (serif) + DM Sans (body) + Fira Code (mono)
+═══════════════════════════════════════════════════════════════ */
+
+/* Fuentes elegantes: serif para display, sans para body, mono para código */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Fira+Code:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── Variables del Design System ── */
+:root {
+  /* Fondos: escala de oscuridad para crear profundidad */
+  --bg-base:       #080810;              /* fondo raíz: casi negro con tinte azul */
+  --bg-card:       #0f0f1e;              /* tarjetas y paneles */
+  --bg-glass:      rgba(255,255,255,0.03); /* glassmorphism suave */
+  --bg-glass-hov:  rgba(255,255,255,0.06); /* glassmorphism en hover */
+
+  /* Bordes: sutiles para no saturar */
+  --border:        rgba(255,255,255,0.07);
+  --border-hov:    rgba(255,255,255,0.14);
+  --border-accent: rgba(200,160,80,0.3);   /* borde dorado para elementos de énfasis */
+
+  /* Paleta de acentos (jerarquía: dorado > violeta > cyan) */
+  --gold:          #c8a050;    /* dorado matemático — acento primario */
+  --gold-light:    #e8c878;    /* versión clara del dorado */
+  --violet:        #7c6ef5;    /* violeta — acento secundario */
+  --cyan:          #22d3ee;    /* cyan — acento terciario */
+  --emerald:       #34d399;    /* verde esmeralda — éxito */
+  --coral:         #fb7185;    /* coral — errores */
+  --amber:         #fbbf24;    /* ámbar — advertencias */
+  --lime:          #a3e635;    /* verde lima — operadores lógicos */
+  --fuchsia:       #e879f9;    /* fucsia — operadores aritméticos */
+
+  /* Colores semánticos de cada tipo de token */
+  --t-kw:     #9d8bff;                    /* palabras reservadas — violeta claro */
+  --t-id:     #22d3ee;                    /* identificadores — cyan */
+  --t-num:    #34d399;                    /* enteros — esmeralda */
+  --t-dec:    #67e8f9;                    /* decimales — cyan claro */
+  --t-str:    #fbbf24;                    /* cadenas — ámbar */
+  --t-arith:  #e879f9;                    /* aritméticos — fucsia */
+  --t-assign: #e8c878;                    /* asignación <- — dorado */
+  --t-rel:    #60a5fa;                    /* relacionales — azul */
+  --t-logic:  #a3e635;                    /* lógicos — lima */
+  --t-delim:  rgba(200,200,220,0.35);     /* delimitadores — gris sutil */
+  --t-err:    #fb7185;                    /* errores — coral */
+
+  /* Tipografía: tres fuentes con roles distintos */
+  --f-display: 'Playfair Display', Georgia, serif; /* títulos elegantes */
+  --f-body:    'DM Sans', system-ui, sans-serif;   /* texto general legible */
+  --f-code:    'Fira Code', 'Cascadia Code', monospace; /* código y monoespaciado */
+
+  /* Texto: escala de opacidad para jerarquía */
+  --tx:       #eeeef8;    /* texto primario */
+  --tx-soft:  #8890b0;    /* texto secundario */
+  --tx-muted: #424670;    /* texto terciario / placeholders */
+
+  /* Geometría */
+  --r-sm:   6px;
+  --r:      10px;
+  --r-lg:   16px;
+  --r-xl:   20px;
+  --r-full: 9999px;
+
+  /* Sombras */
+  --shadow-card: 0 4px 28px rgba(0,0,0,.45);
+  --shadow-glow: 0 0 50px rgba(200,160,80,.05); /* halo dorado muy sutil */
+}
+
+/* ── Reset global ── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--bg-base);
+  color: var(--tx);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Capa de gradientes de fondo para crear profundidad atmosférica:
+   - violeta en esquina superior izquierda
+   - dorado en esquina inferior derecha
+   - cyan en el centro */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% -10%,  rgba(124,110,245,.09) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 95% 80%,   rgba(200,160,80,.06)  0%, transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 40%,   rgba(34,211,238,.04)  0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Capa de patrón de puntos como textura de fondo (muy sutil, casi invisible) */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.022) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Contenedor principal: centrado con ancho máximo */
+.wrap {
+  position: relative; z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem 6rem;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HEADER — Identidad del compilador
+══════════════════════════════════════════════════════════════ */
+.hdr {
+  padding: 5rem 0 3.5rem;
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+  gap: 1rem; position: relative;
+}
+
+/* Línea decorativa vertical que "desciende" hacia el contenido */
+.hdr::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 1px; height: 56px;
+  background: linear-gradient(to bottom, transparent, rgba(200,160,80,.5));
+}
+
+/* Badge superior: etiqueta de contexto del curso */
+.hdr-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--r-full);
+  padding: 6px 20px;
+  font-family: var(--f-code); font-size: .63rem;
+  color: var(--gold); letter-spacing: .18em; text-transform: uppercase;
+  animation: fade-down .6s ease both; /* entra desde arriba */
+}
+
+/* Punto pulsante en el badge — indica actividad */
+.hdr-tag-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 8px var(--gold);
+  animation: pulse-dot 2s ease infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.4; transform:scale(.7); }
+}
+
+/* Título principal: serif pesado para impacto visual */
+.hdr-title {
+  font-family: var(--f-display);
+  font-size: clamp(2.8rem, 5.5vw, 4.8rem);
+  font-weight: 900; letter-spacing: -.02em; line-height: 1.05;
+  animation: fade-up .7s .1s ease both;
+}
+/* "EulerCode": dorado con halo luminoso */
+.hdr-title .word-1 { color: var(--gold-light); text-shadow: 0 0 60px rgba(200,160,80,.3); }
+/* Guión separador: desvanecido */
+.hdr-title .word-2 { color: var(--tx-muted); }
+/* "Mini Compilador": itálica + gradiente violeta→cyan (se ve como un subtítulo elegante) */
+.hdr-title .word-3 {
+  display: block; font-style: italic; font-weight: 400;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  background: linear-gradient(90deg, var(--violet), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-top: .25rem;
+}
+
+/* Subtítulo en monoespaciado con módulos del compilador */
+.hdr-sub {
+  font-family: var(--f-code); font-size: .73rem;
+  color: var(--tx-muted); letter-spacing: .1em;
+  animation: fade-up .7s .2s ease both;
+}
+
+/* Badge de características del lenguaje */
+.lang-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, rgba(124,110,245,.08), rgba(34,211,238,.05));
+  border: 1px solid rgba(124,110,245,.22);
+  border-radius: var(--r-full); padding: 6px 18px;
+  font-family: var(--f-code); font-size: .66rem;
+  color: var(--violet); letter-spacing: .06em;
+  animation: fade-up .7s .3s ease both;
+}
+
+/* Animaciones de entrada: elementos suben al aparecer */
+@keyframes fade-up {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes fade-down {
+  from { opacity:0; transform:translateY(-10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   KEYWORDS — Chips interactivos de palabras reservadas
+══════════════════════════════════════════════════════════════ */
+.kw-legend { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.75rem; }
+
+/* Chip individual: estilo pill con borde violeta sutil */
+.kw-tag {
+  background: rgba(124,110,245,.07);
+  border: 1px solid rgba(124,110,245,.16);
+  border-radius: var(--r); padding: 5px 13px;
+  font-family: var(--f-code); font-size: .7rem; color: var(--violet);
+  transition: all .18s ease; cursor: default; /* no es clickeable, solo decorativo */
+}
+.kw-tag:hover {
+  background: rgba(124,110,245,.13);
+  border-color: rgba(124,110,245,.32);
+  transform: translateY(-1px); /* micro-elevación en hover */
+}
+/* Equivalente en español/inglés dentro del chip (más pequeño y muted) */
+.kw-tag span { color: var(--tx-muted); font-size: .6rem; margin-left: 5px; font-style: italic; }
+
+/* ══════════════════════════════════════════════════════════════
+   ACTION BAR — Controles del editor
+══════════════════════════════════════════════════════════════ */
+.action-bar {
+  display: flex; align-items: center; gap: .55rem;
+  margin-bottom: 1rem; flex-wrap: wrap;
+}
+.action-bar-title {
+  font-family: var(--f-code); font-size: .62rem;
+  color: var(--tx-muted); letter-spacing: .14em;
+  text-transform: uppercase; margin-right: .3rem;
+}
+
+/* Base compartida de todos los botones */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: .5rem 1.1rem; border: none; border-radius: var(--r);
+  font-family: var(--f-body); font-weight: 600; font-size: .78rem;
+  cursor: pointer; transition: all .18s ease; white-space: nowrap;
+}
+
+/* Botón Analizar: gradiente dorado oscuro con sombra glow */
+.btn-run {
+  background: linear-gradient(135deg, var(--gold-light), #9a7020);
+  color: #0a0805; /* texto oscuro sobre fondo dorado */
+  box-shadow: 0 4px 20px rgba(200,160,80,.25), 0 0 0 1px rgba(200,160,80,.18);
+}
+.btn-run:hover  { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(200,160,80,.4), 0 0 0 1px rgba(200,160,80,.32); }
+.btn-run:active { transform: translateY(0); }
+
+/* Botón Limpiar: glass sutil */
+.btn-clear {
+  background: var(--bg-glass); color: var(--tx-soft); border: 1px solid var(--border);
+}
+.btn-clear:hover { background: var(--bg-glass-hov); border-color: var(--border-hov); color: var(--tx); }
+
+/* Botones muestras correctas: se vuelven verdes en hover */
+.btn-sample {
+  background: transparent; color: var(--tx-muted); border: 1px solid var(--border);
+  font-size: .7rem; padding: .4rem .85rem; border-radius: var(--r);
+  font-family: var(--f-body); font-weight: 500; cursor: pointer;
+  transition: all .18s ease; white-space: nowrap;
+}
+.btn-sample:hover { border-color: var(--emerald); color: var(--emerald); background: rgba(52,211,153,.05); }
+
+/* Botones muestras con errores: se vuelven rojos en hover */
+.btn-sample-err {
+  background: transparent; color: var(--tx-muted); border: 1px solid var(--border);
+  font-size: .7rem; padding: .4rem .85rem; border-radius: var(--r);
+  font-family: var(--f-body); font-weight: 500; cursor: pointer;
+  transition: all .18s ease; white-space: nowrap;
+}
+.btn-sample-err:hover { border-color: var(--coral); color: var(--coral); background: rgba(251,113,133,.05); }
+
+/* ══════════════════════════════════════════════════════════════
+   EDITOR — Área de código con apariencia de IDE
+══════════════════════════════════════════════════════════════ */
+/* Contenedor del editor: borde sutil + gradiente dorado en la parte superior */
+.editor-wrap {
+  border-radius: var(--r-xl); border: 1px solid var(--border); overflow: hidden;
+  box-shadow: var(--shadow-card), var(--shadow-glow);
+  background: linear-gradient(180deg, rgba(200,160,80,.035) 0%, transparent 50px), var(--bg-card);
+}
+
+/* Barra de título tipo IDE: fondo oscuro semitransparente con backdrop blur */
+.editor-topbar {
+  background: rgba(0,0,0,.35); border-bottom: 1px solid var(--border);
+  padding: .8rem 1.4rem; display: flex; align-items: center; gap: .75rem;
+  backdrop-filter: blur(10px);
+}
+.mac-dots { display:flex; gap:6px; }
+.mac-dot  { width:11px; height:11px; border-radius:50%; opacity:.85; }
+
+/* Etiqueta del lenguaje en la esquina derecha del editor */
+.editor-lang {
+  font-family: var(--f-code); font-size: .62rem; color: var(--gold);
+  letter-spacing: .14em; text-transform: uppercase; margin-left: auto;
+  background: rgba(200,160,80,.08); border: 1px solid rgba(200,160,80,.18);
+  border-radius: var(--r-full); padding: 2px 12px;
+}
+
+/* Área de texto: transparente para heredar el fondo del editor */
+.code-area {
+  width: 100%; min-height: 300px; background: transparent; border: none;
+  color: var(--tx); font-family: var(--f-code); font-size: .88rem;
+  line-height: 1.9; padding: 1.5rem 1.75rem; resize: vertical; outline: none;
+  tab-size: 2; caret-color: var(--gold); /* cursor dorado */
+}
+.code-area::placeholder { color: var(--tx-muted); opacity: .6; font-style: italic; }
+
+/* ══════════════════════════════════════════════════════════════
+   SECCIONES DE RESULTADOS — Layout común
+══════════════════════════════════════════════════════════════ */
+.results-section { margin-top: 2.5rem; }
+
+/* Encabezado de sección: línea lateral coloreada + texto monoespaciado */
+.section-label {
+  display: flex; align-items: center; gap: .75rem;
+  font-family: var(--f-code); font-size: .63rem;
+  color: var(--tx-muted); letter-spacing: .16em;
+  text-transform: uppercase; margin-bottom: 1.1rem;
+}
+/* La línea lateral de color se genera con ::before de cada variante */
+.section-label::before { content:''; display:block; width:2px; height:16px; border-radius:2px; }
+
+/* Colores de línea lateral por tipo de sección */
+.label-tokens::before  { background: linear-gradient(to bottom, var(--gold), var(--violet)); }
+.label-errors::before  { background: var(--coral); }
+.label-symbols::before { background: var(--violet); }
+.label-stats::before   { background: var(--gold); }
+
+/* Badge con conteo de elementos en la sección */
+.section-count {
+  margin-left: auto; background: var(--bg-glass); border: 1px solid var(--border);
+  border-radius: var(--r-full); padding: 2px 12px; font-size: .63rem; color: var(--tx-muted);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TOKENS GRID — Tarjetas de tokens
+══════════════════════════════════════════════════════════════ */
+.tokens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); /* columnas responsivas */
+  gap: .42rem; max-height: 540px; overflow-y: auto; padding-right: .25rem;
+}
+
+/* Tarjeta individual: glassmorphism sutil con animación de entrada */
+.tok-card {
+  background: var(--bg-glass); border: 1px solid var(--border);
+  border-radius: var(--r); padding: .65rem 1rem;
+  display: flex; align-items: center; gap: .7rem;
+  animation: card-in .22s ease both; /* entrada animada con delay escalonado desde JS */
+  transition: background .15s, border-color .15s, transform .15s;
+  flex-wrap: wrap; /* permite que el mensaje de error vaya en segunda línea */
+}
+@keyframes card-in {
+  from { opacity:0; transform:translateY(6px) scale(.98); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.tok-card:hover { background: var(--bg-glass-hov); border-color: var(--border-hov); transform: translateY(-1px); }
+
+/* Número de índice del token (posición en el stream) */
+.tok-index { font-family:var(--f-code); font-size:.58rem; color:var(--tx-muted); min-width:22px; text-align:right; opacity:.55; }
+
+/* Etiqueta del tipo: pill con color por categoría */
+.tok-pill {
+  font-family:var(--f-code); font-size:.58rem; font-weight:500;
+  padding:3px 10px; border-radius:var(--r-full); white-space:nowrap;
+  min-width:132px; text-align:center; letter-spacing:.04em;
+}
+
+/* Estilos de pill: fondo translúcido + color de texto + borde del mismo color */
+.pill-kw     { background:rgba(157,139,255,.11); color:var(--t-kw);    border:1px solid rgba(157,139,255,.24); }
+.pill-id     { background:rgba(34,211,238,.07);  color:var(--t-id);    border:1px solid rgba(34,211,238,.18);  }
+.pill-num    { background:rgba(52,211,153,.09);  color:var(--t-num);   border:1px solid rgba(52,211,153,.20);  }
+.pill-dec    { background:rgba(103,232,249,.07); color:var(--t-dec);   border:1px solid rgba(103,232,249,.18); }
+.pill-str    { background:rgba(251,191,36,.09);  color:var(--t-str);   border:1px solid rgba(251,191,36,.20);  }
+.pill-arith  { background:rgba(232,121,249,.09); color:var(--t-arith); border:1px solid rgba(232,121,249,.20); }
+.pill-assign { background:rgba(232,200,120,.11); color:var(--t-assign);border:1px solid rgba(232,200,120,.24); }
+.pill-rel    { background:rgba(96,165,250,.09);  color:var(--t-rel);   border:1px solid rgba(96,165,250,.20);  }
+.pill-logic  { background:rgba(163,230,53,.09);  color:var(--t-logic); border:1px solid rgba(163,230,53,.18);  }
+.pill-delim  { background:rgba(255,255,255,.04); color:var(--t-delim); border:1px solid rgba(255,255,255,.09); }
+.pill-err    { background:rgba(251,113,133,.11); color:var(--t-err);   border:1px solid rgba(251,113,133,.26); }
+
+/* Lexema del token: monoespaciado, flex para ocupar espacio disponible */
+.tok-value { font-family:var(--f-code); font-size:.84rem; color:var(--tx); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Posición línea:columna */
+.tok-line  { font-family:var(--f-code); font-size:.58rem; color:var(--tx-muted); margin-left:auto; opacity:.55; }
+/* Mensaje de error léxico (segunda línea de la tarjeta) */
+.tok-err-msg { font-family:var(--f-code); font-size:.65rem; color:var(--t-err); opacity:.85; width:100%; padding-top:2px; }
+
+/* ══════════════════════════════════════════════════════════════
+   TABLAS DE SÍMBOLOS Y ERRORES — Estilo refinado
+══════════════════════════════════════════════════════════════ */
+/* Contenedor de tabla con bordes redondeados y sombra */
+.sym-wrap {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-card);
+}
+.sym-table { width:100%; border-collapse:collapse; font-family:var(--f-code); font-size:.77rem; }
+
+/* Encabezados: fondo muy oscuro, texto muted en uppercase */
+.sym-table th {
+  background: rgba(0,0,0,.3); color: var(--tx-muted);
+  font-size: .6rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase;
+  padding: .85rem 1.25rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+/* Celdas: padding generoso, separadas por borde sutil */
+.sym-table td { padding:.6rem 1.25rem; border-bottom:1px solid var(--border); color:var(--tx-soft); transition:background .12s; }
+.sym-table tr:hover td      { background: var(--bg-glass-hov); }
+.sym-table tr:last-child td { border-bottom: none; }
+
+/* Colores de celda por tipo de token (override con !important para garantizar el color) */
+.td-kw    { color:var(--t-kw)    !important; }
+.td-id    { color:var(--t-id)    !important; }
+.td-num   { color:var(--t-num)   !important; }
+.td-str   { color:var(--t-str)   !important; }
+.td-arith { color:var(--t-arith) !important; }
+.td-rel   { color:var(--t-rel)   !important; }
+.td-err   { color:var(--t-err)   !important; }
+
+/* Badge circular que muestra el número de ocurrencias del símbolo */
+.occ {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:26px; height:20px; background:var(--bg-glass); border:1px solid var(--border);
+  border-radius:var(--r-full); font-size:.63rem; color:var(--tx-muted); padding:0 8px;
+}
+.err-type-badge { font-family:var(--f-code); font-size:.68rem; font-weight:500; letter-spacing:.04em; }
+
+/* ══════════════════════════════════════════════════════════════
+   ESTADÍSTICAS — Tarjetas métricas con número serif grande
+══════════════════════════════════════════════════════════════ */
+.stats-row { display:flex; flex-wrap:wrap; gap:.7rem; }
+
+/* Tarjeta métrica: fondo card + línea coloreada en la base */
+.stat-card {
+  flex:1; min-width:110px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--r-lg); padding:1.1rem 1.4rem; position:relative; overflow:hidden;
+  transition:transform .2s, border-color .2s;
+}
+.stat-card:hover { transform:translateY(-2px); border-color:var(--border-hov); }
+
+/* Línea de acento en la base de cada tarjeta (identifica la categoría por color) */
+.stat-card::after {
+  content:''; position:absolute; bottom:0; left:0; right:0;
+  height:2px; border-radius:0 0 var(--r-lg) var(--r-lg);
+}
+.stat-total::after { background:linear-gradient(90deg, var(--gold), var(--violet)); }
+.stat-kw::after    { background:var(--t-kw); }
+.stat-id::after    { background:var(--t-id); }
+.stat-num::after   { background:var(--t-num); }
+.stat-str::after   { background:var(--t-str); }
+.stat-ops::after   { background:var(--t-arith); }
+.stat-err::after   { background:var(--t-err); }
+
+/* Número grande en serif (contraste con el body sans-serif) */
+.stat-n { font-family:var(--f-display); font-size:2.1rem; font-weight:700; line-height:1; margin-bottom:.35rem; }
+.stat-lbl { font-size:.62rem; color:var(--tx-muted); text-transform:uppercase; letter-spacing:.1em; }
+
+/* ══════════════════════════════════════════════════════════════
+   ESTADOS ESPECIALES
+══════════════════════════════════════════════════════════════ */
+/* Estado vacío: icono grande desvanecido + texto descriptivo */
+.empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:.65rem; padding:4rem 1rem; color:var(--tx-muted);
+  font-family:var(--f-code); font-size:.73rem;
+}
+.empty-icon { font-size:2.2rem; opacity:.13; }
+
+/* Estado de éxito: fondo verde muy sutil + borde esmeralda */
+.err-ok {
+  display:flex; align-items:center; gap:.75rem; padding:1.1rem 1.4rem;
+  background:rgba(52,211,153,.04); border:1px solid rgba(52,211,153,.16);
+  border-radius:var(--r-lg); font-family:var(--f-code); font-size:.8rem; color:var(--emerald);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BNF — Bloque de gramática formal
+══════════════════════════════════════════════════════════════ */
+/* Pre-formateado con borde lateral violeta para distinguirlo visualmente */
+#bnfDisplay {
+  font-family:var(--f-code); font-size:.79rem; line-height:1.82;
+  background:linear-gradient(135deg, var(--bg-card) 0%, rgba(124,110,245,.04) 100%);
+  border:1px solid var(--border);
+  border-left:3px solid var(--violet); /* acento lateral violeta — marca la gramática */
+  border-radius:var(--r-xl); padding:2rem 2.5rem;
+  overflow-x:auto; color:var(--tx-soft); white-space:pre; margin:0;
+  box-shadow:var(--shadow-card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ÁRBOL SVG — Contenedor del árbol de derivación
+══════════════════════════════════════════════════════════════ */
+#parseTreeWrap {
+  background:linear-gradient(135deg, var(--bg-card), rgba(200,160,80,.025));
+  border:1px solid var(--border); border-radius:var(--r-xl); padding:1.5rem;
+  min-height:200px; overflow:auto; box-shadow:var(--shadow-card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DIVISOR — Separador elegante entre secciones
+══════════════════════════════════════════════════════════════ */
+/* Gradiente horizontal que desaparece en los bordes (más elegante que una línea sólida) */
+.divider {
+  height:1px;
+  background:linear-gradient(90deg, transparent, rgba(200,160,80,.14) 20%, rgba(200,160,80,.14) 80%, transparent);
+  margin:2.5rem 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLLBAR — Discreta y coherente con la paleta
+══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar              { width:4px; height:4px; }
+::-webkit-scrollbar-track        { background:transparent; }
+::-webkit-scrollbar-thumb        { background:rgba(200,160,80,.2); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover  { background:rgba(200,160,80,.4); }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Adaptaciones para pantallas pequeñas
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .hdr-title   { font-size:2.1rem; }
+  .tokens-grid { grid-template-columns:1fr; } /* una columna en móvil */
+  .stats-row   { gap:.5rem; }
+  .stat-card   { min-width:85px; padding:.85rem 1rem; }
+  .stat-n      { font-size:1.6rem; }
+  .wrap        { padding:0 1rem 4rem; }
+}
