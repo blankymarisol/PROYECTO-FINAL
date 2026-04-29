@@ -140,13 +140,15 @@ function treeToSVG(root) {
   <rect x="${nx}" y="${n._y}" width="${NODE_W}" height="${NODE_H}" rx="7"
         fill="${c.fill}" stroke="${c.stroke}" stroke-width="1"/>
   <text x="${nx+NODE_W/2}" y="${n._y+NODE_H/2}" text-anchor="middle"
-        dominant-baseline="central" font-family="'Fira Code',monospace"
+        dominant-baseline="central" font-family="Consolas, 'Courier New', monospace"
         font-size="10.5" fill="${c.text}"
         font-weight="${isNT(n)?"500":"400"}">${lbl}</text>
 </g>`;
   }).join("\n");
 
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="overflow:visible;background:transparent">
+  // IMPORTANTE: el SVG lleva xmlns explícito para que funcione correctamente
+  // tanto en el DOM como al ser serializado para exportar como PNG
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" style="overflow:visible;background:transparent" data-w="${W}" data-h="${H}">
 ${lines}
 ${rects}
 </svg>`;
@@ -177,7 +179,134 @@ function renderParseTree(tokens, containerId) {
     return errors;
   }
 
-  // 3. Generar SVG e inyectarlo en el DOM
-  container.innerHTML = `<div style="overflow-x:auto;padding:8px 0">${treeToSVG(tree)}</div>`;
+  // 3. Generar el SVG e inyectarlo junto con el botón de descarga
+  container.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">
+      <button
+        onclick="downloadTreeAsPNG()"
+        style="
+          display:inline-flex;align-items:center;gap:6px;
+          padding:.42rem 1rem;
+          background:rgba(108,142,255,.12);
+          border:1px solid rgba(108,142,255,.3);
+          border-radius:8px;
+          font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:600;
+          color:#6c8eff;cursor:pointer;transition:all .18s ease;
+        "
+        onmouseover="this.style.background='rgba(108,142,255,.22)'"
+        onmouseout="this.style.background='rgba(108,142,255,.12)'"
+      >
+        ⬇ Descargar PNG
+      </button>
+    </div>
+    <div id="svgTreeContainer" style="overflow-x:auto;padding:8px 0">${treeToSVG(tree)}</div>`;
+
   return errors;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   downloadTreeAsPNG()  — FUNCIÓN PÚBLICA
+   Dibuja el árbol directamente en un <canvas> 
+   ───────────────────────────────────────────────────────────────── */
+function downloadTreeAsPNG() {
+  // Buscar el SVG para leer sus dimensiones
+  const svgEl = document.querySelector("#svgTreeContainer svg");
+  if (!svgEl) {
+    alert("No hay árbol generado. Analiza el código primero.");
+    return;
+  }
+
+  // Leer las dimensiones reales del árbol guardadas en data-attributes
+  const svgW = parseFloat(svgEl.getAttribute("data-w")) || 800;
+  const svgH = parseFloat(svgEl.getAttribute("data-h")) || 400;
+
+  // Configuración del canvas de exportación
+  const SCALE   = 2;      // resolución 2x (HD)
+  const PADDING = 50;     // margen alrededor del árbol
+
+  const canvasW = Math.round(svgW  * SCALE + PADDING * 2);
+  const canvasH = Math.round(svgH  * SCALE + PADDING * 2);
+
+  const canvas = document.createElement("canvas");
+  canvas.width  = canvasW;
+  canvas.height = canvasH;
+  const ctx = canvas.getContext("2d");
+
+  // ── Fondo oscuro del tema EulerCode ──────────────────────────
+  ctx.fillStyle = "#0d0f14";
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  
+  ctx.save();
+  ctx.translate(PADDING, PADDING);
+  ctx.scale(SCALE, SCALE);
+
+  // Dibujar líneas (aristas entre nodos)
+  const lines = svgEl.querySelectorAll("line");
+  lines.forEach(line => {
+    ctx.beginPath();
+    ctx.moveTo(parseFloat(line.getAttribute("x1")), parseFloat(line.getAttribute("y1")));
+    ctx.lineTo(parseFloat(line.getAttribute("x2")), parseFloat(line.getAttribute("y2")));
+    ctx.strokeStyle = "#2a3550";
+    ctx.lineWidth   = 1.2;
+    ctx.stroke();
+  });
+
+  // Dibujar rectángulos y texto de cada nodo
+  const groups = svgEl.querySelectorAll("g");
+  groups.forEach(g => {
+    const rect = g.querySelector("rect");
+    const text = g.querySelector("text");
+    if (!rect || !text) return;
+
+    const x  = parseFloat(rect.getAttribute("x"));
+    const y  = parseFloat(rect.getAttribute("y"));
+    const w  = parseFloat(rect.getAttribute("width"));
+    const h  = parseFloat(rect.getAttribute("height"));
+    const rx = parseFloat(rect.getAttribute("rx")) || 0;
+
+    // Dibujar rectángulo redondeado
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, rx);
+    ctx.fillStyle   = rect.getAttribute("fill")   || "#1a1a28";
+    ctx.strokeStyle = rect.getAttribute("stroke") || "#424670";
+    ctx.lineWidth   = 1;
+    ctx.fill();
+    ctx.stroke();
+
+    // Dibujar texto centrado en el nodo
+    const fontSize  = parseFloat(text.getAttribute("font-size")) || 10.5;
+    const fontWeight = text.getAttribute("font-weight") || "400";
+    ctx.font      = `${fontWeight} ${fontSize}px Consolas, 'Courier New', monospace`;
+    ctx.fillStyle = text.getAttribute("fill") || "#8890b0";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      text.textContent,
+      parseFloat(text.getAttribute("x")),
+      parseFloat(text.getAttribute("y"))
+    );
+  });
+
+  ctx.restore();
+
+  // ── Watermark sutil en la esquina inferior derecha ────────────
+  ctx.font      = `${11 * SCALE}px Consolas, monospace`;
+  ctx.fillStyle = "rgba(74,85,120,0.55)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("EulerCode — Árbol de Derivación", canvasW - PADDING / 2, canvasH - 14);
+
+  // ── Exportar el canvas como PNG y disparar la descarga ────────
+  canvas.toBlob(function(pngBlob) {
+    const link    = document.createElement("a");
+    link.download = "arbol_derivacion_EulerCode.png";
+    link.href     = URL.createObjectURL(pngBlob);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    // Liberar memoria
+    URL.revokeObjectURL(link.href);
+  }, "image/png");
 }

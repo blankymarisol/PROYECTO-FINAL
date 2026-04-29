@@ -138,7 +138,8 @@ function analyze() {
   const bnfEl = document.getElementById("bnfDisplay");
   if (bnfEl) bnfEl.textContent = BNF_RULES;
 
-  /* 3. ANÁLISIS SINTÁCTICO + ÁRBOL SVG */
+  /* 3. ANÁLISIS SINTÁCTICO + ÁRBOL SVG
+     renderParseTree también descarga el PNG automáticamente si hay árbol */
   const parseErrors = renderParseTree(lexResult.tokens, "parseTreeWrap");
   const validToks   = lexResult.tokens.filter(t => t.type !== TYPE.ERR);
   const parseInfo   = document.getElementById("parseInfo");
@@ -188,10 +189,11 @@ function loadErrorSample(n) { document.getElementById("codeInput").value = SAMPL
  * Exponer funciones al ámbito global (window) para que los
  * onclick del HTML puedan llamarlas con "use strict" activo.
  */
-window.analyze         = analyze;
-window.clearAll        = clearAll;
-window.loadSample      = loadSample;
-window.loadErrorSample = loadErrorSample;
+window.analyze            = analyze;
+window.clearAll           = clearAll;
+window.loadSample         = loadSample;
+window.loadErrorSample    = loadErrorSample;
+window.downloadTreeAsPNG  = downloadTreeAsPNG; // función definida en treeRenderer.js
 
 
 /* Atajo de teclado: Ctrl+Enter (Windows) o Cmd+Enter (Mac) */
