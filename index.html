@@ -212,17 +212,51 @@ show(x);"></textarea>
 </div><!-- /wrap -->
 
 <!--
-  ORDEN DE CARGA DE SCRIPTS (CRÍTICO — cada archivo depende del anterior):
-  1. constants.js  → TYPE, CAT, ERR_TYPES, KEYWORDS, REGEX_RULES
-  2. lexer.js      → clase Lexer (depende de constants)
-  3. parser.js     → Parser, SemanticAnalyzer, BNF_RULES, renderParseTree (depende de constants)
-  4. render.js     → funciones de renderizado UI (depende de TYPE, ERR_COLOR)
-  5. app.js        → SAMPLES, analyze(), eventos (depende de todo lo anterior)
+  ═══════════════════════════════════════════════════════════════════
+  ORDEN DE CARGA DE SCRIPTS — Crítico: cada archivo depende del anterior.
+
+  CAPA 1 — Base global (sin dependencias):
+    constants.js              → TYPE, CAT, ERR_TYPES, KEYWORDS, REGEX_RULES, ERR_COLOR
+
+  CAPA 2 — Análisis léxico:
+    lexer.js                  → clase Lexer (usa constants)
+
+  CAPA 3 — Análisis sintáctico y semántico (carpeta parser/):
+    parser/bnf.js             → constante BNF_RULES (solo texto)
+    parser/Parser.js          → clase Parser con descenso recursivo
+    parser/SemanticAnalyzer.js → clase SemanticAnalyzer
+    parser/treeRenderer.js    → measureTree, positionTree, renderParseTree (usa Parser)
+
+  CAPA 4 — Renderizado de UI (carpeta render/):
+    render/utils.js           → $, esc, emptyState, pillClass, tdClass, clearUI
+    render/tokens.js          → renderTokens (usa utils)
+    render/errors.js          → renderErrorTable, renderSyntaxErrors (usa utils)
+    render/symbols.js         → renderSymbols (usa utils)
+
+  CAPA 5 — Lógica principal:
+    app.js                    → analyze(), clearAll(), loadSample() (usa todo lo anterior)
+  ═══════════════════════════════════════════════════════════════════
 -->
+
+<!-- Capa 1: Constantes globales -->
 <script src="js/constants.js"></script>
+
+<!-- Capa 2: Léxico -->
 <script src="js/lexer.js"></script>
-<script src="js/parser.js"></script>
-<script src="js/render.js"></script>
+
+<!-- Capa 3: Sintáctico y semántico -->
+<script src="js/parser/bnf.js"></script>
+<script src="js/parser/Parser.js"></script>
+<script src="js/parser/SemanticAnalyzer.js"></script>
+<script src="js/parser/treeRenderer.js"></script>
+
+<!-- Capa 4: Renderizado -->
+<script src="js/render/utils.js"></script>
+<script src="js/render/tokens.js"></script>
+<script src="js/render/errors.js"></script>
+<script src="js/render/symbols.js"></script>
+
+<!-- Capa 5: Orquestador principal -->
 <script src="js/app.js"></script>
 </body>
 </html>
