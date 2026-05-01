@@ -9,6 +9,9 @@
  *  Centralizar todas las constantes que los demás archivos necesitan:
  *  tipos de tokens, categorías, mensajes de error, palabras reservadas
  *  y las expresiones regulares del analizador léxico.
+ *
+ *  CARGADO PRIMERO en index.html porque todos los otros archivos JS
+ *  dependen de las variables aquí definidas.
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -42,6 +45,9 @@ const TYPE = {
 
    Se muestra en la columna "Categoría" de la Tabla de Símbolos.
    Usa las claves de TYPE como índices dinámicos (computed properties).
+
+   EJEMPLO: CAT["Palabra reservada"]  →  "Reservada"
+            CAT["Identificador"]      →  "Identificador"
    ─────────────────────────────────────────────────────────────────── */
 const CAT = {
   [TYPE.KW]:     "Reservada",
@@ -62,7 +68,7 @@ const CAT = {
    ERR_TYPES — Nombres de los tipos de error léxico.
 
    Cada constante representa una categoría de error diferente.
-   Se usan como claves en ERR_COLOR y como texto
+   Se usan como claves en ERR_COLOR (para colores) y como texto
    visible en la Tabla de Errores.
    ─────────────────────────────────────────────────────────────────── */
 const ERR_TYPES = {
@@ -80,6 +86,8 @@ const ERR_TYPES = {
 
    Permite diferenciar visualmente los errores por su naturaleza.
    Los valores referencian variables CSS definidas en styles.css.
+
+   USO en render.js:  style="color:${ERR_COLOR[err.errType]}"
    ─────────────────────────────────────────────────────────────────── */
 const ERR_COLOR = {
   [ERR_TYPES.ID_TOO_LONG]:   "var(--violet)",  // violeta: error de nombre largo
@@ -99,17 +107,19 @@ const ERR_COLOR = {
 
    EulerCode es CASE-SENSITIVE: "Num" o "NUM" NO son palabras reservadas,
    solo "num" en minúsculas es válida.
+
+   Mezcla español-inglés con términos matemáticos según el diseño del lenguaje.
    ─────────────────────────────────────────────────────────────────── */
 const KEYWORDS = new Set([
 
   // ── Tipos de datos ──────────────────────────────────────
   "num",      // declarar variable entera    →  num x <- 5;
   "dec",      // declarar variable decimal   →  dec pi <- 3.14;
-  "bool",     // declarar variable booleana  →  bool activo <- cierto;
+  "binario",  // declarar variable booleana  →  binario activo <- cierto;
 
   // ── Valores booleanos ───────────────────────────────────
-  "cierto",   // verdadero / true   →  bool b <- cierto;
-  "falso",    // falso / false      →  bool b <- falso;
+  "cierto",   // verdadero / true   →  binario b <- cierto;
+  "falso",    // falso / false      →  binario b <- falso;
 
   // ── Definición y retorno de funciones ───────────────────
   "definir",  // declarar una función  →  definir suma(num a, num b) inicio
@@ -117,7 +127,7 @@ const KEYWORDS = new Set([
 
   // ── Estructuras condicionales ───────────────────────────
   "si",       // condicional if     →  si (x > 0) inicio
-  "else",     // alternativa else   →  else inicio
+  "alternativa", // alternativa del si  →  alternativa inicio
 
   // ── Ciclos / Bucles ─────────────────────────────────────
   "repetir",  // ciclo while  →  repetir (x < 10) inicio
@@ -160,17 +170,17 @@ const KEYWORDS = new Set([
    ─────────────────────────────────────────────────────────────────── */
 const REGEX_RULES = [
 
-  // ── 1. Comentarios (se descartan)
+  // ── 1. Comentarios (se descartan, no generan token) ─────
   // Comentario de una línea: comienza con // y termina al saltar de línea
   { regex: /^\/\/[^\n]*/,      type: "SKIP" },
   // Comentario de bloque: entre /* y */  ([\s\S] captura saltos de línea también)
   { regex: /^\/\*[\s\S]*?\*\//, type: "SKIP" },
 
-  // ── 2. Espacios en blanco (también se descartan)
+  // ── 2. Espacios en blanco (también se descartan) ─────────
   // Cualquier combinación de espacio, tab, retorno de carro o salto de línea
   { regex: /^[ \t\r\n]+/,      type: "SKIP" },
 
-  // ── 3. Cadenas de texto 
+  // ── 3. Cadenas de texto ───────────────────────────────────
   // Cadena válida con comillas dobles: "hola mundo"
   // El grupo de captura ([^"\n]*) extrae el contenido sin las comillas
   { regex: /^"([^"\n]*)"/,     type: "STR" },
@@ -180,54 +190,55 @@ const REGEX_RULES = [
   // Esto es un ERROR léxico — se detecta aquí antes de caer en ERR_CHAR
   { regex: /^"[^"\n]*/,        type: "ERR_UNSTR" },
 
-  // ── 4. Operador de asignación 
+  // ── 4. Operador de asignación ─────────────────────────────
   // DEBE ir antes de la regla de "<" para que "<-" sea reconocido completo
   { regex: /^<-/,              type: "ASSIGN" },
 
-  // ── 5. Operadores aritméticos de dos caracteres 
+  // ── 5. Operadores aritméticos de dos caracteres ───────────
   // Potencia: **  (antes de la regla de * para no confundirlo con multiplicación)
   { regex: /^\*\*/,            type: "ARITH" },
   // Módulo visual: %%  (antes de cualquier regla de %)
   { regex: /^%%/,              type: "ARITH" },
 
-  // ── 6. Operadores lógicos 
+  // ── 6. Operadores lógicos ────────────────────────────────
   // &&  (y lógico)  |  ||  (o lógico)  |  !  (negación)
   { regex: /^(&&|\|\||!)/,     type: "LOGIC" },
 
-  // ── 7. Operadores relacionales de dos caracteres 
+  // ── 7. Operadores relacionales de dos caracteres ──────────
   // ==  !=  <=  >=  deben ir ANTES de < y > (que son de un solo carácter)
   { regex: /^(==|!=|<=|>=)/,   type: "REL" },
   // Relacionales simples: <  >
   { regex: /^[<>]/,            type: "REL" },
 
-  // ── 8. Operadores aritméticos simples 
+  // ── 8. Operadores aritméticos simples ────────────────────
   // +  -  *  /  (el ** ya fue capturado antes así que * aquí es solo *)
   { regex: /^[+\-*\/]/,        type: "ARITH" },
 
-  // ── 9. Delimitadores 
+  // ── 9. Delimitadores ─────────────────────────────────────
   // Paréntesis, llaves, coma, punto y coma
   { regex: /^[(){},;]/,        type: "DELIM" },
 
-  // ── 10. Token inválido: dígito seguido de letras
+  // ── 10. Token inválido: dígito seguido de letras ─────────
   // Ej: 3abc  12variable  →  esto es un error léxico
   // Va ANTES de DEC_RAW y NUM_RAW para capturarlo como error específico
   { regex: /^[0-9]+[a-zA-Z_][a-zA-Z0-9_]*/, type: "ERR_TOKEN" },
 
-  // ── 11. Número decimal 
+  // ── 11. Número decimal ───────────────────────────────────
   // Uno o más dígitos, un punto, uno o más dígitos  →  3.14,  0.5,  100.0
   // Va ANTES de NUM_RAW porque si fuera al revés, "3" en "3.14" se consumiría primero
   { regex: /^[0-9]+\.[0-9]+/,  type: "DEC_RAW" },
 
-  // ── 12. Número entero 
+  // ── 12. Número entero ────────────────────────────────────
   // Uno o más dígitos consecutivos  →  0, 42, 9999
   { regex: /^[0-9]+/,          type: "NUM_RAW" },
 
-  // ── 13. Palabra (keyword o identificador) 
+  // ── 13. Palabra (keyword o identificador) ────────────────
   // Empieza con letra o guion bajo, seguido de letras, dígitos o guion bajo
   // El Lexer luego verifica si está en KEYWORDS para diferenciarlo
   { regex: /^[a-zA-Z_][a-zA-Z0-9_]*/, type: "WORD" },
 
-  // ── 14. Carácter desconocido (último recurso = error) 
+  // ── 14. Carácter desconocido (último recurso = error) ────
   // El punto (.) captura cualquier carácter que no haya sido reconocido arriba
+  // Si llegamos aquí, ese carácter no pertenece al lenguaje EulerCode
   { regex: /^./,               type: "ERR_CHAR" },
 ];

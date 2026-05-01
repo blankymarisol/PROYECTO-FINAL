@@ -743,13 +743,13 @@ body::after {
     <div class="kw-legend">
       <span class="kw-tag">num<span>entero</span></span>
       <span class="kw-tag">dec<span>decimal</span></span>
-      <span class="kw-tag">bool<span>booleano</span></span>
+      <span class="kw-tag">binario<span>booleano</span></span>
       <span class="kw-tag">cierto<span>true</span></span>
       <span class="kw-tag">falso<span>false</span></span>
       <span class="kw-tag">definir<span>function</span></span>
       <span class="kw-tag">return<span>retorno</span></span>
       <span class="kw-tag">si<span>if</span></span>
-      <span class="kw-tag">else<span>else</span></span>
+      <span class="kw-tag">alternativa<span>else</span></span>
       <span class="kw-tag">repetir<span>while</span></span>
       <span class="kw-tag">contar<span>for</span></span>
       <span class="kw-tag">romper<span>break</span></span>
@@ -774,7 +774,7 @@ body::after {
     <button class="btn btn-sample" onclick="loadSample(2)">✓ Factorial</button>
     <button class="btn btn-sample" onclick="loadSample(3)">✓ Raíz cuad.</button>
     <button class="btn btn-sample" onclick="loadSample(4)">✓ Potencias</button>
-    <button class="btn btn-sample" onclick="loadSample(5)">✓ MCD Euler</button>
+    <button class="btn btn-sample" onclick="loadSample(5)">✓ Fibonacci</button>
     <!-- Muestras con errores -->
     <button class="btn-sample-err" onclick="loadErrorSample(1)">✗ Error léxico 1</button>
     <button class="btn-sample-err" onclick="loadErrorSample(2)">✗ Error léxico 2</button>
@@ -945,7 +945,7 @@ show(x);"></textarea>
           <tbody>
             <tr><td><span class="info-kw">num</span></td><td>Número entero (0 – 99999)</td><td><code>num edad <- 25;</code></td></tr>
             <tr><td><span class="info-kw">dec</span></td><td>Número decimal (0.0 – 99999.99)</td><td><code>dec pi <- 3.1416;</code></td></tr>
-            <tr><td><span class="info-kw">bool</span></td><td>Valor booleano (cierto / falso)</td><td><code>bool activo <- cierto;</code></td></tr>
+            <tr><td><span class="info-kw">binario</span></td><td>Valor booleano (cierto / falso)</td><td><code>binario activo <- cierto;</code></td></tr>
           </tbody>
         </table>
       </div>
@@ -961,7 +961,7 @@ num contador;
 // Declarar con valor inicial (usando el operador de asignación <-)
 num x <- 10;
 dec precio <- 99.99;
-bool activo <- cierto;
+binario activo <- cierto;
 
 // Reasignar valor a una variable ya declarada
 x <- x + 1;</pre>
@@ -980,13 +980,13 @@ x <- x + 1;</pre>
           <tbody>
             <tr><td><span class="info-kw">num</span></td><td>int / entero</td><td>Declarar número entero</td></tr>
             <tr><td><span class="info-kw">dec</span></td><td>float / decimal</td><td>Declarar número decimal</td></tr>
-            <tr><td><span class="info-kw">bool</span></td><td>boolean</td><td>Declarar booleano</td></tr>
+            <tr><td><span class="info-kw">binario</span></td><td>boolean</td><td>Declarar booleano</td></tr>
             <tr><td><span class="info-kw">cierto</span></td><td>true</td><td>Valor verdadero</td></tr>
             <tr><td><span class="info-kw">falso</span></td><td>false</td><td>Valor falso</td></tr>
             <tr><td><span class="info-kw">definir</span></td><td>function / def</td><td>Definir una función</td></tr>
             <tr><td><span class="info-kw">return</span></td><td>return</td><td>Retornar valor de función</td></tr>
             <tr><td><span class="info-kw">si</span></td><td>if</td><td>Condicional</td></tr>
-            <tr><td><span class="info-kw">else</span></td><td>else</td><td>Alternativa del condicional</td></tr>
+            <tr><td><span class="info-kw">alternativa</span></td><td>else</td><td>Alternativa del condicional</td></tr>
             <tr><td><span class="info-kw">repetir</span></td><td>while</td><td>Ciclo mientras condición sea cierta</td></tr>
             <tr><td><span class="info-kw">contar</span></td><td>for</td><td>Ciclo con contador</td></tr>
             <tr><td><span class="info-kw">romper</span></td><td>break</td><td>Salir de un ciclo</td></tr>
@@ -1028,7 +1028,7 @@ x <- x + 1;</pre>
         <pre class="info-code">// ── Condicional si / else ──────────────────────
 si (x > 0) inicio
     show(x);
-else inicio
+alternativa inicio
     show(0);
 fin
 

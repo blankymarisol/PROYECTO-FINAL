@@ -16,6 +16,9 @@
  *
  *  NOTA: Trabaja directamente sobre el array de tokens (no sobre el AST).
  *  Un analizador semántico completo usaría el árbol y manejaría scopes.
+ *
+ *  DEPENDE DE: constants.js (TYPE)
+ *  USADO EN:   app.js
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -42,21 +45,55 @@ class SemanticAnalyzer {
   _analyzeTokens() {
     const toks = this.tokens;
 
+    /*
+     * Para el análisis de redeclaración usamos un STACK de scopes.
+     * Cada vez que encontramos "inicio" apilamos un nuevo scope (objeto vacío).
+     * Cada vez que encontramos "fin" desapilamos el scope actual.
+     * Una variable solo es error si ya existe en el MISMO scope o en uno padre
+     * que NO sea un bloque alternativo (si/alternativa son scopes hermanos).
+     * 
+     * Simplificación práctica: solo reportamos redeclaración si la variable
+     * existe en el scope GLOBAL (nivel 0), no dentro de bloques condicionales.
+     */
+    const scopeStack = [{}]; // scope[0] = global
+
     for (let i = 0; i < toks.length; i++) {
       const t = toks[i];
 
+      // Manejo de scopes: "inicio" abre uno nuevo, "fin" cierra el actual
+      if (t.type === TYPE.KW && t.value === "inicio") {
+        scopeStack.push({});  // nuevo scope
+      }
+      if (t.type === TYPE.KW && t.value === "fin" && scopeStack.length > 1) {
+        // Al cerrar el scope, registrar las variables locales en varTable
+        // para el análisis de "variable no usada" (con su scope de origen)
+        scopeStack.pop();
+      }
+
       /* Verificación 1 — Declaración de variable: tipo + identificador
-         Registrar en varTable; error si ya existe (redeclaración). */
-      if (t.type === TYPE.KW && ["num","dec","bool"].includes(t.value)) {
+         Solo reportar redeclaración si la variable ya existe en el scope GLOBAL.
+         Dentro de bloques (si/alternativa/repetir/contar/definir) se permite
+         reutilizar el mismo nombre porque son scopes independientes. */
+      if (t.type === TYPE.KW && ["num","dec","binario"].includes(t.value)) {
         const next = toks[i + 1];
         if (next?.type === TYPE.ID) {
-          if (this.varTable[next.value]) {
+          const isGlobalScope = scopeStack.length === 1;
+          const existsInGlobal = !!scopeStack[0][next.value];
+
+          if (isGlobalScope && existsInGlobal) {
+            // Redeclaración en el scope global → error real
             this.errors.push(
               `Línea ${next.line}: Variable "${next.value}" ya fue declarada ` +
-              `en línea ${this.varTable[next.value].line}`
+              `en línea ${scopeStack[0][next.value].line}`
             );
           } else {
-            this.varTable[next.value] = { tipo: t.value, line: next.line, usada: false };
+            // Registrar en el scope actual (global o local)
+            const currentScope = scopeStack[scopeStack.length - 1];
+            currentScope[next.value] = { tipo: t.value, line: next.line, usada: false };
+            // También en varTable global para la tabla de símbolos
+            if (!this.varTable[next.value]) {
+              this.varTable[next.value] = { tipo: t.value, line: next.line, usada: false };
+            }
           }
         }
       }
@@ -78,7 +115,7 @@ class SemanticAnalyzer {
       if (t.type === TYPE.ID) {
         const prev       = toks[i - 1];
         const esDecl     = prev?.type === TYPE.KW &&
-                           ["num","dec","bool","definir"].includes(prev.value);
+                           ["num","dec","binario","definir"].includes(prev.value);
         if (!esDecl && this.varTable[t.value] !== undefined) {
           this.varTable[t.value].usada = true;
         }

@@ -1,38 +1,26 @@
 "use strict";
 
 /*
- * ═══════════════════════════════════════════════════════════════════
- *  app.js — EulerCode
- *  Punto de entrada principal 
- *
- *  PROPÓSITO:
- *  Coordinar todas las fases del compilador cuando el usuario
- *  presiona "Analizar". 
+ * =================================================================
+ *  app.js - EulerCode
+ *  Punto de entrada principal
  *
  *  PIPELINE:
- *    1. Lexer (lexer.js)
- *       → tokeniza el código fuente
- *    2. Render léxico (render/tokens.js, render/errors.js, render/symbols.js)
- *       → muestra tokens, errores léxicos, tabla de símbolos
- *    3. Verificación de errores — si hay CUALQUIER error (léxico, sintáctico
- *       o semántico), NO se genera el árbol y se muestra mensaje de bloqueo
- *    4. Parser (parser/Parser.js vía parser/treeRenderer.js)
- *       → construye el árbol SOLO si el código es 100% correcto
- *    5. SemanticAnalyzer (parser/SemanticAnalyzer.js)
- *       → verifica variables, división por cero, etc.
- *    6. Render semántico (render/errors.js)
- *       → muestra errores sintácticos y semánticos combinados
- *    7. updateErrorStat() — actualiza el contador de ERRORES en las
- *       estadísticas con el total real (léxicos + sintácticos + semánticos)
- * ═══════════════════════════════════════════════════════════════════
+ *    1. Lexer            -> tokeniza el codigo fuente
+ *    2. Render lexico    -> tokens, errores lexicos, tabla simbolos
+ *    3. Parser + Arbol   -> arbol sintactico SVG (solo si no hay errores)
+ *    4. SemanticAnalyzer -> verifica variables, division por cero
+ *    5. Render semantico -> errores sintacticos y semanticos
+ *    6. updateErrorStat  -> actualiza contador total de errores
+ * =================================================================
  */
 
 
 /* ── 5 programas CORRECTOS en EulerCode ─────────────────────── */
 const SAMPLES_VALID = [
 
-  `// Muestra 1 — Área de un círculo
-// Demuestra: definir, dec, return, operadores aritméticos, show
+`// Muestra 1 - Area de un circulo
+// Demuestra: definir, dec, return, operadores aritmeticos, show
 definir areaCirculo(dec radio) inicio
     dec pi <- 3.1416;
     dec area <- pi * radio * radio;
@@ -42,8 +30,8 @@ dec r <- 5.0;
 dec resultado <- areaCirculo(r);
 show(resultado);`,
 
-  `// Muestra 2 — Factorial con ciclo contar (for)
-// Demuestra: num, contar, acumulador
+`// Muestra 2 - Factorial con ciclo contar
+// Demuestra: num, contar, acumulador, operadores
 num n <- 6;
 num fact <- 1;
 contar (i <- 1; i <= n; i <- i + 1) inicio
@@ -51,20 +39,17 @@ contar (i <- 1; i <= n; i <- i + 1) inicio
 fin
 show(fact);`,
 
-  `// Muestra 3 — Raíz cuadrada con condicional si/else
-// Demuestra: si, else, raiz(), operadores relacionales
-num x <- 25;
-num y <- 16;
-si (x > y) inicio
-    dec res <- raiz(x);
-    show(res);
-else inicio
-    dec res <- raiz(y);
-    show(res);
-fin`,
+`// Muestra 3 - Area y perimetro de un rectangulo
+// Demuestra: num, dec, operadores aritmeticos, show
+num largo <- 8;
+num ancho <- 5;
+num perimetro <- 2 * largo + 2 * ancho;
+dec area <- largo * ancho;
+show(perimetro);
+show(area);`,
 
-  `// Muestra 4 — Potencias de 2 con ciclo repetir (while)
-// Demuestra: repetir, elevar(), condición, incremento
+`// Muestra 4 - Potencias de 2 con ciclo repetir
+// Demuestra: repetir, elevar(), condicion, incremento
 num base <- 2;
 num exponente <- 1;
 num limite <- 10;
@@ -74,61 +59,60 @@ repetir (exponente <= limite) inicio
     exponente <- exponente + 1;
 fin`,
 
-  `// Muestra 5 — MCD con el Algoritmo de Euler (Euclides)
-// Demuestra: función recursiva, repetir, modulo()
-definir mcd(num a, num b) inicio
-    repetir (b != 0) inicio
-        num temp <- b;
-        b <- modulo(a, b);
-        a <- temp;
-    fin
-    return a;
-fin
-num x <- 48;
-num y <- 18;
-num resultado <- mcd(x, y);
-show(resultado);`,
+`// Muestra 5 - Serie de Fibonacci
+// Demuestra: num, contar, asignacion, operadores aritmeticos
+num terminos <- 10;
+num a <- 0;
+num b <- 1;
+num siguiente <- 0;
+show(a);
+show(b);
+contar (i <- 2; i <= terminos; i <- i + 1) inicio
+    siguiente <- a + b;
+    show(siguiente);
+    a <- b;
+    b <- siguiente;
+fin`,
+
 ];
 
 
 /* ── 5 programas CON ERRORES intencionales ───────────────────── */
 const SAMPLES_ERROR = [
 
-  `// Error 1 — Léxico: token inválido + carácter desconocido
-// "3variable" empieza con dígito → token inválido
-// "@" no pertenece al alfabeto de EulerCode
+`// Error 1 - Lexico: token invalido y caracter desconocido
 num 3variable <- 10;
 dec precio <- 99.99;
 num total <- precio @ 3variable;
 show(total);`,
 
-  `// Error 2 — Léxico: identificador demasiado largo (>15 chars)
+`// Error 2 - Lexico: identificador demasiado largo
 num resultado_de_la_operacion_matematica <- 100;
 show(resultado_de_la_operacion_matematica);`,
 
-  `// Error 3 — Sintáctico: falta 'inicio' y 'fin', falta ';'
+`// Error 3 - Sintactico: falta inicio y fin
 si (x > 0)
     show(x)
 `,
 
-  `// Error 4 — Semántico: variable "b" usada sin declarar
+`// Error 4 - Semantico: variable b usada sin declarar
 num a <- 5;
 num c <- a + b;
 show(c);`,
 
-  `// Error 5 — Semántico: división por cero + variable no usada
+`// Error 5 - Semantico: division por cero y variable no usada
 num x <- 100;
 num z <- x / 0;
 num sinUso <- 42;
 show(z);`,
+
 ];
 
 
-/* ═══════════════════════════════════════════════════════════════
-   _blockTree(message)  — FUNCIÓN PRIVADA
-   Muestra un mensaje de bloqueo en el panel del árbol cuando
-   el código tiene errores y no se puede generar el árbol.
-═══════════════════════════════════════════════════════════════ */
+/* =================================================================
+   _blockTree(message) - Muestra mensaje de bloqueo en el arbol
+   cuando el codigo tiene errores y no se puede generar el arbol.
+================================================================= */
 function _blockTree(message) {
   const treeWrap = document.getElementById("parseTreeWrap");
   if (!treeWrap) return;
@@ -138,12 +122,12 @@ function _blockTree(message) {
       justify-content:center; gap:1rem; padding:3rem 1rem;
       font-family:'Outfit',sans-serif;
     ">
-      <div style="font-size:2.5rem; opacity:.7;">⛔</div>
+      <div style="font-size:2.5rem; opacity:.7;">X</div>
       <div style="
         font-size:.95rem; font-weight:700;
         color:var(--coral,#fb7185);
         letter-spacing:.04em;
-      ">Árbol no disponible</div>
+      ">Arbol no disponible</div>
       <div style="
         font-size:.78rem; color:var(--tx-muted,#4a5578);
         text-align:center; max-width:340px; line-height:1.6;
@@ -153,113 +137,105 @@ function _blockTree(message) {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   analyze() — Función principal del compilador
+/* =================================================================
+   analyze() - Funcion principal del compilador
    Ejecuta el pipeline completo cuando el usuario presiona Analizar.
-═══════════════════════════════════════════════════════════════ */
+================================================================= */
 function analyze() {
   const code = document.getElementById("codeInput").value;
-  if (!code.trim()) return; // nada que analizar
+  if (!code.trim()) return;
 
-  /* 1. ANÁLISIS LÉXICO */
+  /* 1. ANALISIS LEXICO */
   const lexResult = new Lexer(code).run();
   renderTokens(lexResult.tokens);
   renderErrorTable(lexResult.errTable, "errWrap", "errCount");
   renderSymbols(lexResult.symbols, lexResult.tokens, lexResult.errors);
 
-  /* 2. GRAMÁTICA BNF — inyectar el texto en el <pre> */
+  /* 2. GRAMATICA BNF */
   const bnfEl = document.getElementById("bnfDisplay");
   if (bnfEl) bnfEl.textContent = BNF_RULES;
 
-  /* 3. VERIFICACIÓN PREVIA — bloquear el árbol si hay errores léxicos
-     Los errores léxicos impiden el parseo correcto porque los tokens
-     inválidos contaminarían el árbol de derivación. */
+  /* 3. BLOQUEAR ARBOL si hay errores lexicos */
   if (lexResult.errors.length > 0) {
     _blockTree(
-      `Se encontraron ${lexResult.errors.length} error(es) léxico(s).\n` +
-      `Corrígelos antes de generar el árbol.`
+      "Se encontraron " + lexResult.errors.length + " error(es) lexico(s).\n" +
+      "Corrigelos antes de generar el arbol."
     );
     const parseInfo = document.getElementById("parseInfo");
     if (parseInfo) parseInfo.textContent = "";
-
-    /* Ejecutar semántico igual para mostrar todos los avisos */
     const semResults = new SemanticAnalyzer(lexResult.tokens).getResults();
     renderSyntaxErrors([], semResults);
     updateErrorStat(lexResult.errors.length + semResults.errors.length);
-    return; // salir antes de intentar parsear
+    return;
   }
 
-  /* 4. ANÁLISIS SINTÁCTICO
-     Solo se ejecuta si no hay errores léxicos. */
+  /* 4. ANALISIS SINTACTICO + ARBOL SVG */
   const parseErrors = renderParseTree(lexResult.tokens, "parseTreeWrap");
-  const validToks   = lexResult.tokens.filter(t => t.type !== TYPE.ERR);
+  const validToks   = lexResult.tokens.filter(function(t) { return t.type !== TYPE.ERR; });
   const parseInfo   = document.getElementById("parseInfo");
 
-  /* 5. ANÁLISIS SEMÁNTICO */
+  /* 5. ANALISIS SEMANTICO */
   const semResults = new SemanticAnalyzer(lexResult.tokens).getResults();
 
-  /* 6. Si hay errores sintácticos O semánticos, reemplazar el árbol
-     con el mensaje de bloqueo (puede que el árbol parcial sea confuso) */
+  /* 6. BLOQUEAR ARBOL si hay errores sintacticos o semanticos */
   const hasSyntaxErrors   = (parseErrors || []).length > 0;
   const hasSemanticErrors = (semResults.errors || []).length > 0;
 
   if (hasSyntaxErrors || hasSemanticErrors) {
     const total = (parseErrors || []).length + (semResults.errors || []).length;
     _blockTree(
-      `Se encontraron ${total} error(es) en el análisis.\n` +
-      `Corrígelos para poder visualizar el árbol de derivación.`
+      "Se encontraron " + total + " error(es) en el analisis.\n" +
+      "Corrigelos para poder visualizar el arbol de derivacion."
     );
     if (parseInfo) parseInfo.textContent = "";
   } else {
-    /* Sin errores: mostrar cuántos tokens válidos participaron */
-    if (parseInfo) parseInfo.textContent = `(${validToks.length} tokens válidos)`;
+    if (parseInfo) parseInfo.textContent = "(" + validToks.length + " tokens validos)";
   }
 
-  /* 7. MOSTRAR ERRORES SINTÁCTICOS + SEMÁNTICOS EN LA TABLA */
+  /* 7. MOSTRAR ERRORES SINTACTICOS + SEMANTICOS */
   renderSyntaxErrors(parseErrors, semResults);
 
-  /* 8. ACTUALIZAR EL CONTADOR TOTAL DE ERRORES EN LAS ESTADÍSTICAS */
+  /* 8. ACTUALIZAR CONTADOR TOTAL DE ERRORES */
   const totalErrors = lexResult.errors.length
     + (parseErrors || []).length
     + (semResults.errors || []).length;
-
   updateErrorStat(totalErrors);
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   clearAll() — Limpiar toda al estado inicial
-═══════════════════════════════════════════════════════════════ */
+/* =================================================================
+   clearAll() - Limpiar toda la UI al estado inicial
+================================================================= */
 function clearAll() {
-  clearUI(); // limpiar paneles comunes (definido en render/utils.js)
+  clearUI();
 
   const bnfEl = document.getElementById("bnfDisplay");
   if (bnfEl) bnfEl.textContent = "";
 
   const treeWrap = document.getElementById("parseTreeWrap");
   if (treeWrap) treeWrap.innerHTML =
-    `<div class="empty"><span class="empty-icon">⊙</span><span>El árbol se generará al analizar...</span></div>`;
+    "<div class='empty'><span class='empty-icon'>&#8857;</span><span>El arbol se generara al analizar...</span></div>";
 
   const parseInfo = document.getElementById("parseInfo");
   if (parseInfo) parseInfo.textContent = "";
 
   const semWrap = document.getElementById("semWrap");
   if (semWrap) semWrap.innerHTML =
-    `<div class="empty"><span class="empty-icon">◈</span><span>El análisis semántico aparecerá aquí...</span></div>`;
+    "<div class='empty'><span class='empty-icon'>&#9672;</span><span>El analisis semantico aparecera aqui...</span></div>";
 
   const semCount = document.getElementById("semCount");
   if (semCount) semCount.textContent = "";
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   openInfo() / closeInfo() — Modal de guía del lenguaje EulerCode
-═══════════════════════════════════════════════════════════════ */
+/* =================================================================
+   openInfo() / closeInfo() - Modal de guia del lenguaje EulerCode
+================================================================= */
 function openInfo() {
   const modal = document.getElementById("infoModal");
   if (modal) {
     modal.classList.add("open");
-    document.body.style.overflow = "hidden"; // evitar scroll del fondo
+    document.body.style.overflow = "hidden";
   }
 }
 
@@ -272,17 +248,14 @@ function closeInfo() {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   loadSample / loadErrorSample — Cargar muestras en el editor
-═══════════════════════════════════════════════════════════════ */
-function loadSample(n)      { document.getElementById("codeInput").value = SAMPLES_VALID[n-1] ?? ""; }
-function loadErrorSample(n) { document.getElementById("codeInput").value = SAMPLES_ERROR[n-1] ?? ""; }
+/* =================================================================
+   loadSample / loadErrorSample - Cargar muestras en el editor
+================================================================= */
+function loadSample(n)      { document.getElementById("codeInput").value = SAMPLES_VALID[n-1] || ""; }
+function loadErrorSample(n) { document.getElementById("codeInput").value = SAMPLES_ERROR[n-1] || ""; }
 
 
-/*
- * Exponer funciones al ámbito global (window) para que los
- * onclick del HTML puedan llamarlas con "use strict" activo.
- */
+/* Exponer funciones al ambito global */
 window.analyze            = analyze;
 window.clearAll           = clearAll;
 window.loadSample         = loadSample;
@@ -293,7 +266,7 @@ window.closeInfo          = closeInfo;
 
 
 /* Atajo de teclado: Ctrl+Enter analiza | Escape cierra el modal */
-document.addEventListener("keydown", e => {
+document.addEventListener("keydown", function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") analyze();
   if (e.key === "Escape") closeInfo();
 });

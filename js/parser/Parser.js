@@ -16,6 +16,9 @@
  *    <sentencia>   → parseSentencia()
  *    <declaracion> → parseDeclaracion()
  *    ... etc.
+ *
+ *  DEPENDE DE: constants.js (TYPE)
+ *  USADO EN:   parser/treeRenderer.js
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -112,7 +115,7 @@ class Parser {
     const v = tok.value, t = tok.type;
 
     if (t === TYPE.KW) {
-      if (["num","dec","bool"].includes(v)) return this.parseDeclaracion();
+      if (["num","dec","binario"].includes(v)) return this.parseDeclaracion();
       if (v === "si")      return this.parseCondicional();
       if (v === "repetir") return this.parseCicloRepetir();
       if (v === "contar")  return this.parseCicloContar();
@@ -211,13 +214,13 @@ class Parser {
     ch.push(this.node("fin", [], "fin"));
 
     // else es opcional
-    if (this.peek()?.value === "else") {
-      this.advance(); ch.push(this.node("else", [], "else"));
-      this.expectOrError(TYPE.KW, "inicio", "se esperaba 'inicio' después de 'else'");
+    if (this.peek()?.value === "alternativa") {
+      this.advance(); ch.push(this.node("alternativa", [], "alternativa"));
+      this.expectOrError(TYPE.KW, "inicio", "se esperaba 'inicio' después de 'alternativa'");
       ch.push(this.node("inicio", [], "inicio"));
       const elseBody = this.parseBloque();
       if (elseBody) ch.push(elseBody);
-      this.expectOrError(TYPE.KW, "fin", "se esperaba 'fin' para cerrar else");
+      this.expectOrError(TYPE.KW, "fin", "se esperaba 'fin' para cerrar alternativa");
       ch.push(this.node("fin", [], "fin"));
     }
     return this.node("<condicional>", ch);
@@ -293,7 +296,7 @@ class Parser {
     const ch = [];
     while (
       this.peek()?.type === TYPE.KW &&
-      ["num","dec","bool"].includes(this.peek().value)
+      ["num","dec","binario"].includes(this.peek().value)
     ) {
       const tipo = this.advance();
       ch.push(this.node("<tipo>", [], tipo.value));
@@ -352,12 +355,12 @@ class Parser {
     return ch.length ? this.node("<argumentos>", ch) : null;
   }
 
-  /* ── bloque interno: sentencias hasta "fin" o "else" ───────── */
+  /* ── bloque interno: sentencias hasta "fin" o "alternativa" ── */
   parseBloque() {
     const stmts = [];
     while (!this.isEnd()) {
       const v = this.peek()?.value;
-      if (v === "fin" || v === "else") break;
+      if (v === "fin" || v === "alternativa") break;
       const stmt = this.parseSentencia();
       if (stmt) stmts.push(stmt);
       else      this.advance();
