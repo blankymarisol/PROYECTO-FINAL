@@ -298,8 +298,9 @@ El compilador sigue el pipeline clásico de tres fases:
 
 ## 👩‍💻 Autora
 
-**Blanky Lopez**  
+**Blanky Marisol López Marroquín**  
 Carné: 0905-23-5227  
+Séptimo Semestre, Sección "A"
 Ingeniería en Sistemas de Información y Ciencias de la Computación  
 Universidad Mariano Gálvez de Guatemala — Campus Jutiapa  
 Compiladores 2026
