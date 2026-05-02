@@ -9,16 +9,6 @@
  *  Recibir el array de tokens del Lexer y verificar que estén
  *  en el orden correcto según la gramática BNF de EulerCode.
  *  Si son válidos, construye un Árbol de Derivación (parse tree).
- *
- *  TÉCNICA: Recursive Descent Parser
- *  Cada regla de la gramática BNF tiene su propio método:
- *    <programa>    → parsePrograma()
- *    <sentencia>   → parseSentencia()
- *    <declaracion> → parseDeclaracion()
- *    ... etc.
- *
- *  DEPENDE DE: constants.js (TYPE)
- *  USADO EN:   parser/treeRenderer.js
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -28,11 +18,6 @@ class Parser {
      constructor(tokens)
      Inicializa el parser filtrando tokens de error (no aportan
      información sintáctica válida).
-
-     PROPIEDADES:
-       this.tokens → array de tokens válidos (sin errores léxicos)
-       this.pos    → cursor: índice del token que estamos leyendo ahora
-       this.errors → errores sintácticos encontrados durante el parseo
    ───────────────────────────────────────────────────────────────── */
   constructor(tokens) {
     this.tokens = tokens.filter(t => t.type !== TYPE.ERR);

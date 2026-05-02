@@ -9,9 +9,6 @@
  *  Centralizar todas las constantes que los demás archivos necesitan:
  *  tipos de tokens, categorías, mensajes de error, palabras reservadas
  *  y las expresiones regulares del analizador léxico.
- *
- *  CARGADO PRIMERO en index.html porque todos los otros archivos JS
- *  dependen de las variables aquí definidas.
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -21,9 +18,6 @@
 
    Cada propiedad es una clave corta (ej: "KW") que mapea al nombre
    legible que se muestra en la UI (ej: "Palabra reservada").
-
-   USO: TYPE.KW  →  "Palabra reservada"
-        TYPE.ID  →  "Identificador"
    ─────────────────────────────────────────────────────────────────── */
 const TYPE = {
   KW:     "Palabra reservada",   // keywords: num, dec, si, repetir, etc.
@@ -45,9 +39,6 @@ const TYPE = {
 
    Se muestra en la columna "Categoría" de la Tabla de Símbolos.
    Usa las claves de TYPE como índices dinámicos (computed properties).
-
-   EJEMPLO: CAT["Palabra reservada"]  →  "Reservada"
-            CAT["Identificador"]      →  "Identificador"
    ─────────────────────────────────────────────────────────────────── */
 const CAT = {
   [TYPE.KW]:     "Reservada",
@@ -101,9 +92,6 @@ const ERR_COLOR = {
 
 /* ───────────────────────────────────────────────────────────────────
    KEYWORDS — Conjunto (Set) de las 20 palabras reservadas de EulerCode.
-
-   Se usa un Set (en lugar de Array) porque Set.has() es O(1),
-   es decir, la búsqueda es instantánea sin importar cuántas palabras haya.
 
    EulerCode es CASE-SENSITIVE: "Num" o "NUM" NO son palabras reservadas,
    solo "num" en minúsculas es válida.
@@ -163,10 +151,6 @@ const KEYWORDS = new Set([
      El Lexer prueba cada regla de arriba hacia abajo y usa la PRIMERA
      que coincida. Por eso los patrones más específicos van antes que
      los más generales.
-
-   Ejemplo de problema si el orden fuera incorrecto:
-     Si la regla de "<" va antes que "<-", el Lexer nunca detectaría
-     el operador de asignación porque "<" ya consumiría ese carácter.
    ─────────────────────────────────────────────────────────────────── */
 const REGEX_RULES = [
 

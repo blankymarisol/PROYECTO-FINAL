@@ -9,22 +9,6 @@
  *  Leer el código fuente escrito por el usuario carácter a carácter
  *  y convertirlo en una lista de TOKENS — las unidades mínimas
  *  con significado del lenguaje (palabras, números, operadores, etc.)
- *
- *  ANALOGÍA:
- *  Si el código fuente fuera una oración en español:
- *    "El perro corre rápido"
- *  El léxico la descompondría en palabras individuales:
- *    ["El", "perro", "corre", "rápido"]
- *  Cada palabra tiene un tipo: artículo, sustantivo, verbo, adverbio.
- *  El Lexer hace lo mismo con el código.
- *
- *  SALIDAS que produce:
- *    tokens   → lista de todos los tokens reconocidos
- *    symbols  → tabla de símbolos (tokens únicos con ocurrencias)
- *    errors   → lista de mensajes de error en texto
- *    errTable → tabla de errores estructurada para la UI
- *
- *  DEPENDE DE: constants.js (TYPE, CAT, ERR_TYPES, KEYWORDS, REGEX_RULES)
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -33,22 +17,6 @@ class Lexer {
   /* ─────────────────────────────────────────────────────────────────
      constructor(sourceCode)
      Inicializa el estado interno del Lexer antes de comenzar el análisis.
-
-     PARÁMETRO:
-       sourceCode → string con todo el código fuente ingresado por el usuario
-
-     PROPIEDADES:
-       this.src    → copia del código fuente original
-       this.pos    → posición actual en el string (cuántos caracteres leímos ya)
-       this.line   → número de línea actual (empieza en 1)
-       this.col    → número de columna actual (empieza en 1)
-       this.toks   → array donde se acumulan los tokens encontrados
-       this.sym    → objeto que actúa como tabla de símbolos (clave: tipo|valor)
-       this.errs   → array de mensajes de error en formato texto
-       this.errTbl → array de errores estructurados para la tabla de la UI
-       this._tid   → contador de ID para tokens (se incrementa con cada token)
-       this._sid   → contador de ID para símbolos
-       this._eid   → contador de ID para errores
    ───────────────────────────────────────────────────────────────── */
   constructor(sourceCode) {
     // Normalizar símbolos matemáticos Unicode que algunos editores insertan
@@ -80,12 +48,6 @@ class Lexer {
      Crea un token y lo registra en las listas internas.
 
      Es el método central del Lexer: todo token reconocido pasa por aquí.
-
-     PARÁMETROS:
-       typeKey   → clave del objeto TYPE (ej: "KW", "ID", "NUM")
-       value     → el texto exacto reconocido (el lexema)
-       errType   → (opcional) si hay error, el tipo del error de ERR_TYPES
-       errDetail → (opcional) mensaje descriptivo del error para mostrar al usuario
 
      PROCESO:
        1. Incrementa el contador y crea el objeto token
@@ -139,14 +101,6 @@ class Lexer {
      La tabla de símbolos guarda cada token ÚNICO que aparece en el código.
      Si un token ya existe (mismo tipo + mismo valor), solo incrementa
      su contador de ocurrencias en lugar de crear una entrada duplicada.
-
-     LÓGICA DE CLAVE ÚNICA:
-       La clave se forma como "tipo|valor", por ejemplo:
-         "Identificador|x"          → variable x
-         "Palabra reservada|num"    → keyword num
-         "Número entero|42"         → número 42
-       Esto permite que "num" como keyword y "num" como identificador
-       (si fuera posible) tuvieran entradas separadas.
    ───────────────────────────────────────────────────────────────── */
   _registerSymbol(token, typeKey) {
     // Crear clave única combinando tipo y valor para evitar duplicados
@@ -177,15 +131,6 @@ class Lexer {
 
      También actualiza los contadores de línea y columna correctamente,
      incluso cuando el texto consumido contiene saltos de línea (\n).
-
-     PARÁMETRO:
-       text → el fragmento de código que acaba de ser reconocido (el match)
-
-     LÓGICA:
-       - Si el texto tiene más de una parte al dividir por \n,
-         significa que contiene saltos de línea
-         → incrementar línea, reiniciar columna
-       - Si no hay saltos de línea, solo avanzar en la misma columna
    ───────────────────────────────────────────────────────────────── */
   advance(text) {
     // Dividir el texto por saltos de línea para saber si hay cambios de línea
@@ -211,11 +156,6 @@ class Lexer {
 
      Decide qué tipo de token crear (o qué error reportar) según
      el tipo de regla que coincidió.
-
-     PARÁMETROS:
-       ruleType    → string con el tipo de la regla (ej: "WORD", "NUM_RAW")
-       raw         → el texto completo que coincidió con la regex
-       matchGroups → array con los grupos de captura de la regex (si los hay)
 
      FUNCIONAMIENTO:
        Un switch evalúa el tipo de regla y ejecuta la lógica correspondiente.
