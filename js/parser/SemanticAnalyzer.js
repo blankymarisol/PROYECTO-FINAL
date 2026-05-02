@@ -1,196 +1,194 @@
 "use strict";
 
 /*
- * ═══════════════════════════════════════════════════════════════════
- *  parser/SemanticAnalyzer.js — EulerCode
- *  Analizador Semántico
+ * parser/SemanticAnalyzer.js - EulerCode
+ * Analizador Semantico
  *
- *  PROPÓSITO:
- *  Verificar que el programa sea SIGNIFICATIVO, no solo sintácticamente
- *  correcto. Detecta errores que la gramática no puede capturar:
+ * Verifica que el programa tenga sentido logico:
+ *   - Variable declarada dos veces en el mismo scope global
+ *   - Funcion definida dos veces
+ *   - Variable utilizada sin haber sido declarada
+ *   - Variable declarada pero nunca utilizada (advertencia)
+ *   - Division por cero literal
+ *   - show() llamado sin argumentos
  *
- *    ✗ Variable declarada dos veces
- *    ✗ División por cero (literal)
- *    ✗ show() sin argumentos
- *    ⚠ Variable declarada pero nunca usada (advertencia)
- *
- *  NOTA: Trabaja directamente sobre el array de tokens (no sobre el AST).
- *  Un analizador semántico completo usaría el árbol y manejaría scopes.
- *
- *  DEPENDE DE: constants.js (TYPE)
- *  USADO EN:   app.js
- * ═══════════════════════════════════════════════════════════════════
+ * Usa un stack de scopes para manejar bloques anidados correctamente.
+ * DEPENDE DE: constants.js (TYPE)
  */
 
 class SemanticAnalyzer {
 
-  /* ─────────────────────────────────────────────────────────────────
-     constructor(tokens)
-     Recibe los tokens, filtra errores léxicos y ejecuta el análisis.
-   ───────────────────────────────────────────────────────────────── */
   constructor(tokens) {
-    this.tokens    = tokens.filter(t => t.type !== TYPE.ERR);
-    this.errors    = [];  // errores que impiden la ejecución correcta
-    this.warnings  = [];  // advertencias (el programa puede correr)
-    this.varTable  = {};  // nombre → { tipo, line, usada }
-    this.funcTable = {};  // nombre → { line }
-
+    this.tokens    = tokens.filter(function(t) { return t.type !== TYPE.ERR; });
+    this.errors    = [];
+    this.warnings  = [];
+    this.varTable  = {};
+    this.funcTable = {};
     this._analyzeTokens();
   }
 
-  /* ─────────────────────────────────────────────────────────────────
-     _analyzeTokens()
-     Recorre los tokens aplicando todas las verificaciones semánticas.
-   ───────────────────────────────────────────────────────────────── */
   _analyzeTokens() {
-    const toks = this.tokens;
+    var toks = this.tokens;
+    var scopeStack = [{}];
+    var undeclaredReported = {};
 
-    /*
-     * Para el análisis de redeclaración usamos un STACK de scopes.
-     * Cada vez que encontramos "inicio" apilamos un nuevo scope (objeto vacío).
-     * Cada vez que encontramos "fin" desapilamos el scope actual.
-     * Una variable solo es error si ya existe en el MISMO scope o en uno padre
-     * que NO sea un bloque alternativo (si/alternativa son scopes hermanos).
-     * 
-     * Simplificación práctica: solo reportamos redeclaración si la variable
-     * existe en el scope GLOBAL (nivel 0), no dentro de bloques condicionales.
-     */
-    const scopeStack = [{}]; // scope[0] = global
+    for (var i = 0; i < toks.length; i++) {
+      var t    = toks[i];
+      var prev = toks[i - 1] || null;
+      var next = toks[i + 1] || null;
 
-    for (let i = 0; i < toks.length; i++) {
-      const t = toks[i];
-
-      // Manejo de scopes: "inicio" abre uno nuevo, "fin" cierra el actual
+      /* Manejo de scopes */
       if (t.type === TYPE.KW && t.value === "inicio") {
-        scopeStack.push({});  // nuevo scope
+        scopeStack.push({});
       }
       if (t.type === TYPE.KW && t.value === "fin" && scopeStack.length > 1) {
-        // Al cerrar el scope, registrar las variables locales en varTable
-        // para el análisis de "variable no usada" (con su scope de origen)
         scopeStack.pop();
       }
 
-      /* Verificación 1 — Declaración de variable: tipo + identificador
-         Solo reportar redeclaración si la variable ya existe en el scope GLOBAL.
-         Dentro de bloques (si/alternativa/repetir/contar/definir) se permite
-         reutilizar el mismo nombre porque son scopes independientes. */
-      if (t.type === TYPE.KW && ["num","dec","binario"].includes(t.value)) {
-        const next = toks[i + 1];
-        if (next?.type === TYPE.ID) {
-          const isGlobalScope = scopeStack.length === 1;
-          const existsInGlobal = !!scopeStack[0][next.value];
-
-          if (isGlobalScope && existsInGlobal) {
-            // Redeclaración en el scope global → error real
-            this.errors.push(
-              `Línea ${next.line}: Variable "${next.value}" ya fue declarada ` +
-              `en línea ${scopeStack[0][next.value].line}`
-            );
-          } else {
-            // Registrar en el scope actual (global o local)
-            const currentScope = scopeStack[scopeStack.length - 1];
-            currentScope[next.value] = { tipo: t.value, line: next.line, usada: false };
-            // También en varTable global para la tabla de símbolos
-            if (!this.varTable[next.value]) {
-              this.varTable[next.value] = { tipo: t.value, line: next.line, usada: false };
-            }
+      /* Verificacion 1b - Variable implicita del ciclo contar
+         En "contar ( i <- ..." la variable i no lleva tipo delante,
+         se registra aqui para que no sea marcada como no declarada. */
+      if (t.type === TYPE.KW && t.value === "contar") {
+        var parenT  = toks[i + 1] || null;
+        var idT     = toks[i + 2] || null;
+        var assignT = toks[i + 3] || null;
+        if (parenT && parenT.value === "(" &&
+            idT    && idT.type === TYPE.ID  &&
+            assignT && assignT.type === TYPE.ASSIGN) {
+          if (!this.varTable[idT.value]) {
+            this.varTable[idT.value] = { tipo: "num", line: idT.line, usada: true };
           }
+          var cs = scopeStack[scopeStack.length - 1];
+          cs[idT.value] = { tipo: "num", line: idT.line, usada: true };
         }
       }
 
-      /* Verificación 2 — Definición de función: definir + identificador
-         Error si la función ya fue definida antes. */
-      if (t.value === "definir" && toks[i + 1]?.type === TYPE.ID) {
-        const fname = toks[i + 1].value;
-        if (this.funcTable[fname]) {
-          this.errors.push(`Línea ${toks[i+1].line}: Función "${fname}" ya fue definida`);
-        } else {
-          this.funcTable[fname] = { line: toks[i + 1].line };
-        }
-      }
+      /* Verificacion 1 - Declaracion de variable: tipo + identificador
+         Solo reportar redeclaracion si la variable ya existe en scope GLOBAL.
+         EXCEPCION: si el tipo aparece dentro de los parentesis de "definir"
+         (es un parametro), NO se registra como variable global ni se reporta
+         redeclaracion - los parametros ya se registran en Verificacion 2. */
+      if (t.type === TYPE.KW && (t.value === "num" || t.value === "dec" || t.value === "binario")) {
+        var nxt = toks[i + 1] || null;
+        if (nxt && nxt.type === TYPE.ID) {
 
-      /* Verificación 3 — Uso de variable
-         a) Si está en varTable: marcarla como usada
-         b) Si NO está en varTable Y no es nombre de función ni parámetro:
-            registrarla como "usada sin declarar" para reportar error */
-      if (t.type === TYPE.ID) {
-        const prev = toks[i - 1];
-        const next = toks[i + 1];
+          // Detectar si este tipo esta dentro de parentesis de una definicion de funcion
+          // Buscar hacia atras si hay un "definir" sin "inicio" de por medio
+          var esParametro = false;
+          for (var bi = i - 1; bi >= 0; bi--) {
+            if (toks[bi].value === "inicio") break; // ya estamos dentro del cuerpo
+            if (toks[bi].value === "definir") { esParametro = true; break; }
+          }
 
-        // Contextos donde el identificador NO es un uso de variable:
-        // - justo después de un tipo (declaración): num x, dec y
-        // - justo después de "definir" (nombre de función)
-        // - justo antes de "(" (llamada a función o definición)
-        const esDeclaracion = prev?.type === TYPE.KW &&
-                              ["num","dec","binario","definir"].includes(prev.value);
-        const esNombreFuncion = next?.value === "(";
+          if (!esParametro) {
+            var isGlobal      = scopeStack.length === 1;
+            var existsGlobal  = !!scopeStack[0][nxt.value];
 
-        if (!esDeclaracion && !esNombreFuncion) {
-          if (this.varTable[t.value] !== undefined) {
-            // Variable conocida: marcar como usada
-            this.varTable[t.value].usada = true;
-          } else if (!this.funcTable[t.value]) {
-            // Identificador desconocido que no es nombre de función registrada:
-            // podría ser una variable usada sin declarar
-            // Solo reportar si está en un contexto de expresión (después de <- o operador)
-            const enExpresion = prev && (
-              prev.value === "<-" ||
-              prev.type === TYPE.ARITH ||
-              prev.type === TYPE.REL ||
-              prev.type === TYPE.LOGIC ||
-              prev.value === "(" ||
-              prev.value === ","
-            );
-            if (enExpresion) {
-              // Verificar que no sea un parámetro de función (simplificación:
-              // si aparece en el mismo scope de una función, no reportar)
-              if (!this._undeclaredReported) this._undeclaredReported = new Set();
-              if (!this._undeclaredReported.has(t.value)) {
-                this._undeclaredReported.add(t.value);
-                this.errors.push(
-                  `Linea ${t.line}: Variable "${t.value}" utilizada sin haber sido declarada`
-                );
+            if (isGlobal && existsGlobal) {
+              this.errors.push(
+                "Linea " + nxt.line + ": Variable [" + nxt.value + "] ya fue declarada en linea " + scopeStack[0][nxt.value].line
+              );
+            } else {
+              var scope = scopeStack[scopeStack.length - 1];
+              scope[nxt.value] = { tipo: t.value, line: nxt.line, usada: false };
+              if (!this.varTable[nxt.value]) {
+                this.varTable[nxt.value] = { tipo: t.value, line: nxt.line, usada: false };
               }
             }
           }
         }
       }
+
+      /* Verificacion 2 - Definicion de funcion */
+      if (t.value === "definir" && t.type === TYPE.KW) {
+        var nxt2 = toks[i + 1] || null;
+        if (nxt2 && nxt2.type === TYPE.ID) {
+          if (this.funcTable[nxt2.value]) {
+            this.errors.push("Linea " + nxt2.line + ": Funcion [" + nxt2.value + "] ya fue definida");
+          } else {
+            this.funcTable[nxt2.value] = { line: nxt2.line };
+          }
+          /* Registrar parametros de la funcion para no marcarlos como no declarados */
+          var j = i + 3;
+          while (j < toks.length && toks[j] && toks[j].value !== ")") {
+            var pt = toks[j];
+            if (pt.type === TYPE.ID) {
+              var prevT = toks[j - 1] || null;
+              if (prevT && prevT.type === TYPE.KW &&
+                  (prevT.value === "num" || prevT.value === "dec" || prevT.value === "binario")) {
+                if (!this.varTable[pt.value]) {
+                  this.varTable[pt.value] = { tipo: prevT.value, line: pt.line, usada: true };
+                }
+                var cs2 = scopeStack[scopeStack.length - 1];
+                cs2[pt.value] = { tipo: prevT.value, line: pt.line, usada: true };
+              }
+            }
+            j++;
+          }
+        }
+      }
+
+      /* Verificacion 3 - Uso de variable */
+      if (t.type === TYPE.ID) {
+        var esDecl = prev && prev.type === TYPE.KW &&
+                     (prev.value === "num" || prev.value === "dec" ||
+                      prev.value === "binario" || prev.value === "definir");
+        var esFn   = next && next.value === "(";
+        var esLadoIzq = next && (next.value === "<-" || next.type === TYPE.ASSIGN);
+
+        if (!esDecl && !esFn) {
+          if (this.varTable[t.value] !== undefined) {
+            this.varTable[t.value].usada = true;
+          } else if (!this.funcTable[t.value] && !esLadoIzq) {
+            /* Solo reportar si viene despues de un operador (lado derecho de expresion) */
+            var enExprDer = prev && (
+              prev.type === TYPE.ARITH ||
+              prev.type === TYPE.REL   ||
+              prev.type === TYPE.LOGIC ||
+              prev.value === "("       ||
+              prev.value === ","
+            );
+            if (enExprDer && !undeclaredReported[t.value]) {
+              undeclaredReported[t.value] = true;
+              this.errors.push(
+                "Linea " + t.line + ": Variable [" + t.value + "] utilizada sin haber sido declarada"
+              );
+            }
+          }
+        }
+      }
     }
 
-    /* Verificación 4 — Variables declaradas pero nunca usadas
-       Se hace DESPUÉS del loop para tener todos los usos registrados. */
-    for (const [name, info] of Object.entries(this.varTable)) {
+    /* Verificacion 4 - Variables declaradas pero nunca usadas */
+    var keys = Object.keys(this.varTable);
+    for (var k = 0; k < keys.length; k++) {
+      var name = keys[k];
+      var info = this.varTable[name];
       if (!info.usada) {
         this.warnings.push(
-          `Advertencia — Línea ${info.line}: ` +
-          `Variable "${name}" declarada pero nunca utilizada`
+          "Advertencia - Linea " + info.line + ": Variable [" + name + "] declarada pero nunca utilizada"
         );
       }
     }
 
-    /* Verificación 5 — División por cero literal: / seguido de 0 */
-    for (let i = 0; i < toks.length; i++) {
-      if (
-        toks[i].type === TYPE.ARITH && toks[i].value === "/" &&
-        toks[i+1]?.type === TYPE.NUM  && toks[i+1]?.value === "0"
-      ) {
-        this.errors.push(`Línea ${toks[i].line}: División por cero detectada`);
+    /* Verificacion 5 - Division por cero literal */
+    for (var m = 0; m < toks.length; m++) {
+      if (toks[m].type === TYPE.ARITH && toks[m].value === "/" &&
+          toks[m + 1] && toks[m + 1].type === TYPE.NUM && toks[m + 1].value === "0") {
+        this.errors.push("Linea " + toks[m].line + ": Division por cero detectada");
       }
     }
 
-    /* Verificación 6 — show() vacío: show seguido de ( ) */
-    for (let i = 0; i < toks.length; i++) {
-      if (
-        toks[i].value   === "show" &&
-        toks[i+1]?.value === "("   &&
-        toks[i+2]?.value === ")"
-      ) {
-        this.errors.push(`Línea ${toks[i].line}: 'show' requiere al menos un argumento`);
+    /* Verificacion 6 - show() sin argumentos */
+    for (var n = 0; n < toks.length; n++) {
+      if (toks[n].value === "show" &&
+          toks[n + 1] && toks[n + 1].value === "(" &&
+          toks[n + 2] && toks[n + 2].value === ")") {
+        this.errors.push("Linea " + toks[n].line + ": show() requiere al menos un argumento");
       }
     }
   }
 
-  /* Retornar todos los resultados del análisis */
   getResults() {
     return {
       errors:    this.errors,
