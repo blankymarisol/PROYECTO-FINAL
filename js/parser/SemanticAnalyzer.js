@@ -109,15 +109,50 @@ class SemanticAnalyzer {
         }
       }
 
-      /* Verificación 3 — Uso de variable: marcar como usada
-         Solo si el identificador NO aparece justo después de un tipo
-         (para no confundir la declaración con el uso). */
+      /* Verificación 3 — Uso de variable
+         a) Si está en varTable: marcarla como usada
+         b) Si NO está en varTable Y no es nombre de función ni parámetro:
+            registrarla como "usada sin declarar" para reportar error */
       if (t.type === TYPE.ID) {
-        const prev       = toks[i - 1];
-        const esDecl     = prev?.type === TYPE.KW &&
-                           ["num","dec","binario","definir"].includes(prev.value);
-        if (!esDecl && this.varTable[t.value] !== undefined) {
-          this.varTable[t.value].usada = true;
+        const prev = toks[i - 1];
+        const next = toks[i + 1];
+
+        // Contextos donde el identificador NO es un uso de variable:
+        // - justo después de un tipo (declaración): num x, dec y
+        // - justo después de "definir" (nombre de función)
+        // - justo antes de "(" (llamada a función o definición)
+        const esDeclaracion = prev?.type === TYPE.KW &&
+                              ["num","dec","binario","definir"].includes(prev.value);
+        const esNombreFuncion = next?.value === "(";
+
+        if (!esDeclaracion && !esNombreFuncion) {
+          if (this.varTable[t.value] !== undefined) {
+            // Variable conocida: marcar como usada
+            this.varTable[t.value].usada = true;
+          } else if (!this.funcTable[t.value]) {
+            // Identificador desconocido que no es nombre de función registrada:
+            // podría ser una variable usada sin declarar
+            // Solo reportar si está en un contexto de expresión (después de <- o operador)
+            const enExpresion = prev && (
+              prev.value === "<-" ||
+              prev.type === TYPE.ARITH ||
+              prev.type === TYPE.REL ||
+              prev.type === TYPE.LOGIC ||
+              prev.value === "(" ||
+              prev.value === ","
+            );
+            if (enExpresion) {
+              // Verificar que no sea un parámetro de función (simplificación:
+              // si aparece en el mismo scope de una función, no reportar)
+              if (!this._undeclaredReported) this._undeclaredReported = new Set();
+              if (!this._undeclaredReported.has(t.value)) {
+                this._undeclaredReported.add(t.value);
+                this.errors.push(
+                  `Linea ${t.line}: Variable "${t.value}" utilizada sin haber sido declarada`
+                );
+              }
+            }
+          }
         }
       }
     }

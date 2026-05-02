@@ -165,7 +165,7 @@ function analyze() {
     if (parseInfo) parseInfo.textContent = "";
     const semResults = new SemanticAnalyzer(lexResult.tokens).getResults();
     renderSyntaxErrors([], semResults);
-    updateErrorStat(lexResult.errors.length + semResults.errors.length);
+    updateErrorStat(lexResult.errors.length + semResults.errors.length + (semResults.warnings || []).length);
     return;
   }
 
@@ -195,10 +195,13 @@ function analyze() {
   /* 7. MOSTRAR ERRORES SINTACTICOS + SEMANTICOS */
   renderSyntaxErrors(parseErrors, semResults);
 
-  /* 8. ACTUALIZAR CONTADOR TOTAL DE ERRORES */
+  /* 8. ACTUALIZAR CONTADOR TOTAL DE ERRORES EN ESTADISTICAS
+     Se suman: errores lexicos + errores sintacticos + errores semanticos + advertencias
+     para que la tarjeta ERRORES refleje el total real de avisos del analisis */
   const totalErrors = lexResult.errors.length
     + (parseErrors || []).length
-    + (semResults.errors || []).length;
+    + (semResults.errors || []).length
+    + (semResults.warnings || []).length;
   updateErrorStat(totalErrors);
 }
 
